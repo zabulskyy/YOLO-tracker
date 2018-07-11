@@ -186,9 +186,13 @@ def fullfill(output, num_frames):
         if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0]:
             frame = mfc_data[mfc_iter][0]
             to_cut = mfc_data[mfc_data[:, 0] == frame]
-            result[res_iter] = the_closest(mfc_data[mfc_iter - 1], to_cut)
+            closest = the_closest(result[res_iter - 1], to_cut)
+            result[res_iter] = closest
             mfc_iter += len(to_cut)
             res_iter += 1
+
+            if mfc_iter >= mfc_data.shape[0] - 1:
+                break
 
             # missing detection on some frames, fill with missing
             if mfc_data[mfc_iter - 1][0] + 1 < mfc_data[mfc_iter][0]:
@@ -239,7 +243,7 @@ def run():
     read_dir = time.time()
     # Detection phase
     try:
-        imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:] if os.path.splitext(  # sorted() is my modification
+        imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:100] if os.path.splitext(  # sorted() is my modification
             img)[1] == '.png' or os.path.splitext(img)[1] == '.jpeg' or os.path.splitext(img)[1] == '.jpg']
     except NotADirectoryError:
         imlist = []
@@ -387,16 +391,16 @@ def run():
                     cv2.FONT_HERSHEY_PLAIN, 1, [225, 255, 255], 1)
         return img
 
-    # print(output)
-    list(map(lambda x: write(x, im_batches, orig_ims), output))
-    det_names = pd.Series(imlist).apply(lambda x: "{}/yolo/{}".format(args.det, x.split("/")[-1]))
-    list(map(cv2.imwrite, det_names, orig_ims))
-
-    output = fullfill(output, num_frames)
-    # print(output)
+    # # print(output)
     # list(map(lambda x: write(x, im_batches, orig_ims), output))
-    # det_names = pd.Series(imlist).apply(lambda x: "{}/rec/{}".format(args.det, x.split("/")[-1]))
+    # det_names = pd.Series(imlist).apply(lambda x: "{}/yolo/{}".format(args.det, x.split("/")[-1]))
     # list(map(cv2.imwrite, det_names, orig_ims))
+    print(output)
+    output = fullfill(output, num_frames)
+    print(output)
+    list(map(lambda x: write(x, im_batches, orig_ims), output))
+    det_names = pd.Series(imlist).apply(lambda x: "{}/rec/{}".format(args.det, x.split("/")[-1]))
+    list(map(cv2.imwrite, det_names, orig_ims))
 
 
     end = time.time()
@@ -459,7 +463,3 @@ if __name__ == '__main__':
         [   15.0000,    4.,  4.,  4.,  4.,      0.91,  0.4758,    1.0000]])
 
     output, num_frames, (im_batches, orig_ims) = run()
-
-
-    
-    
