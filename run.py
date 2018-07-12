@@ -41,7 +41,7 @@ def get_test_input(input_dim, CUDA):
     img_ = Variable(img_)
 
     if CUDA:
-        img_ = img_.cuda()
+        img_ = img_.cuda(cuda_n)
     return img_
 
 
@@ -74,6 +74,8 @@ def arg_parse():
                         default="", type=str)
     parser.add_argument("--silent", dest='silent', help="[all] - Run in silent mode",
                         default="", type=str)
+    parser.add_argument("--cuda", dest='cuda', help="cuda [0-9] select a cuda device",
+                        default="0", type=str)
 
     return parser.parse_args()
 def IoU(boxA, boxB):
@@ -207,6 +209,7 @@ def fullfill(output, num_frames):
 
 def run():
     args = arg_parse()
+    cuda_n = int(args.cuda)
     silent = args.silent == "all"
     if (silent):
         import sys
@@ -235,7 +238,7 @@ def run():
 
     # If there's a GPU availible, put the model on GPU
     if CUDA:
-        model.cuda()
+        model.cuda(cuda_n)
 
     # Set the model in evaluation mode
     model.eval()
@@ -243,7 +246,7 @@ def run():
     read_dir = time.time()
     # Detection phase
     try:
-        imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:50] if os.path.splitext(  # sorted() is my modification
+        imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:] if os.path.splitext(  # sorted() is my modification
             img)[1] == '.png' or os.path.splitext(img)[1] == '.jpeg' or os.path.splitext(img)[1] == '.jpg']
     except NotADirectoryError:
         imlist = []
@@ -267,7 +270,7 @@ def run():
     im_dim_list = torch.FloatTensor(im_dim_list).repeat(1, 2)
 
     if CUDA:
-        im_dim_list = im_dim_list.cuda()
+        im_dim_list = im_dim_list.cuda(cuda_n)
 
     leftover = 0
 
@@ -292,7 +295,7 @@ def run():
         # load the image
         start = time.time()
         if CUDA:
-            batch = batch.cuda()
+            batch = batch.cuda(cuda_n)
 
         # Apply offsets to the result predictions
         # Tranform the predictions as described in the YOLO paper
