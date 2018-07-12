@@ -32,7 +32,7 @@ class test_net(nn.Module):
         return fwd(x)
 
 
-def get_test_input(input_dim, CUDA):
+def get_test_input(input_dim, CUDA, cuda_n):
     img = cv2.imread("dog-cycle-car.png")
     img = cv2.resize(img, (input_dim, input_dim))
     img_ = img[:, :, ::-1].transpose((2, 0, 1))
@@ -285,7 +285,7 @@ def run():
     i = 0
 
     write = False
-    model(get_test_input(inp_dim, CUDA), CUDA)
+    model(get_test_input(inp_dim, CUDA, cuda_n), CUDA)
 
     start_det_loop = time.time()
 
