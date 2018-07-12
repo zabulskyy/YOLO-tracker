@@ -243,7 +243,7 @@ def run():
     read_dir = time.time()
     # Detection phase
     try:
-        imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:100] if os.path.splitext(  # sorted() is my modification
+        imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:50] if os.path.splitext(  # sorted() is my modification
             img)[1] == '.png' or os.path.splitext(img)[1] == '.jpeg' or os.path.splitext(img)[1] == '.jpg']
     except NotADirectoryError:
         imlist = []
@@ -392,15 +392,15 @@ def run():
         return img
 
     # # print(output)
-    # list(map(lambda x: write(x, im_batches, orig_ims), output))
-    # det_names = pd.Series(imlist).apply(lambda x: "{}/yolo/{}".format(args.det, x.split("/")[-1]))
-    # list(map(cv2.imwrite, det_names, orig_ims))
-    print(output)
-    output = fullfill(output, num_frames)
-    print(output)
     list(map(lambda x: write(x, im_batches, orig_ims), output))
-    det_names = pd.Series(imlist).apply(lambda x: "{}/rec/{}".format(args.det, x.split("/")[-1]))
+    det_names = pd.Series(imlist).apply(lambda x: "{}/yolo/{}".format(args.det, x.split("/")[-1]))
     list(map(cv2.imwrite, det_names, orig_ims))
+    # print(output)
+    # output = fullfill(output, num_frames)
+    # # print(output)
+    # list(map(lambda x: write(x, im_batches, orig_ims), output))
+    # det_names = pd.Series(imlist).apply(lambda x: "{}/rec/{}".format(args.det, x.split("/")[-1]))
+    # list(map(cv2.imwrite, det_names, orig_ims))
 
 
     end = time.time()
