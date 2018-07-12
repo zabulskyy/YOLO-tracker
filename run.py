@@ -397,10 +397,10 @@ def run():
     list(map(cv2.imwrite, det_names, orig_ims))
     # print(output)
     # output = fullfill(output, num_frames)
-    # # print(output)
-    # list(map(lambda x: write(x, im_batches, orig_ims), output))
-    # det_names = pd.Series(imlist).apply(lambda x: "{}/rec/{}".format(args.det, x.split("/")[-1]))
-    # list(map(cv2.imwrite, det_names, orig_ims))
+    # print(output)
+    list(map(lambda x: write(x, im_batches, orig_ims), output))
+    det_names = pd.Series(imlist).apply(lambda x: "{}/rec/{}".format(args.det, x.split("/")[-1]))
+    list(map(cv2.imwrite, det_names, orig_ims))
 
 
     end = time.time()
@@ -426,21 +426,26 @@ def run():
 
     def report(x, num_frames):
         lx = x.tolist()
-        results = [[] for _ in range(num_frames)]
+        results = list
         for pred in lx:
-            results[int(pred[0])].append(pred[1:])
+            results.append(pred)
         return results
 
     def save_report(rep, file, format=""):
         if format == "":
             with open(file, mode='w') as f:
                 print(rep, file=f)
+        elif format == "csv":
+            import csv
+            with open(file, 'wb') as f:
+                wr = csv.writer(f, quoting=csv.QUOTE_ALL)
+                wr.writerow(rep)
 
     save_to = args.saveto
     rep = report(output, len(imlist))
     if save_to != "":
         print("saving results to", save_to)
-        save_report(rep, save_to)
+        save_report(rep, save_to, "csv")
 
     return output, len(imlist), (im_batches, orig_ims)
 
