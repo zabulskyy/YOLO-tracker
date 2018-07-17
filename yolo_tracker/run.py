@@ -237,6 +237,9 @@ def predict(args):
     nms_thesh = float(args.nms_thresh)
     start = 0
 
+    os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+
     CUDA = torch.cuda.is_available()
 
     classes = load_classes('data/coco.names')
@@ -303,7 +306,7 @@ def predict(args):
     i = 0
 
     write = False
-    # model(get_test_input(inp_dim, CUDA, cuda_n), CUDA)
+    model(get_test_input(inp_dim, CUDA, cuda_n), CUDA)
 
     start_det_loop = time.time()
 
@@ -478,11 +481,11 @@ class Args:
         self.nms_thresh = .4
         self.weightsfile = "yolov3.weights"
         self.images = None
-        self.reso = 416
+        self.reso = "416"
         self.scales = "1,2,3"
         self.saveto = ""
         self.silent = None
-        self.cuda = 0
+        self.cuda = "3"
         self.det = "det"
 
 
@@ -490,7 +493,7 @@ def fill_zeros(folder):
     return [[0,0,0,0] for i in os.listdir(folder) if i.endswith(".jpg")]
 
 def run(vot_path):
-    args = Args()
+    args = arg_parse()
     res = dict()
     folders = sorted(os.listdir(vot_path))
     for folder in folders:
