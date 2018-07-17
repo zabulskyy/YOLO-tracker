@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import matplotlib.patches as patches
 import numpy as np
-import tensorflow as tf
 from PIL import Image
 import os
 import os.path as osp
@@ -82,4 +81,7 @@ def grade_vot(vot_folder, res_folder, gt_filename="groundtruth.txt"):
         mean += res[i]
     return mean / len(res.keys()), res
 
-print(grade_vot("/home/zabulskyy/Datasets/vot2016", "results/middle_box"))
+# print(grade_vot("/home.guest/zabulvol/vot2016/", "results/yolo_tracker"))
+
+for n, i in enumerate(os.listdir("/home/zabulskyy/Datasets/vot2016/blanket/")):
+    plot_single("/home/zabulskyy/Datasets/vot2016/blanket/{}".format(i), "results/yolo_tracker/blanket.txt", n, True)

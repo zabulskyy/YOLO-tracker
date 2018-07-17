@@ -76,6 +76,8 @@ def arg_parse():
                         default="", type=str)
     parser.add_argument("--cuda", dest='cuda', help="cuda [0-9] select a cuda device",
                         default="0", type=str)
+    parser.add_argument("--vot", dest='vot', help="vot folder",
+                        default="/home/zabulskyy/Datasets/vot2016", type=str)
 
     return parser.parse_args()
 
@@ -133,7 +135,10 @@ def the_closest(row_to_compare, rows):
         x21, y21, x22, y22 = row2[1:5]
         x1, y1 = (x11 + x12) / 2, (y11 + y12) / 2
         x2, y2 = (x21 + x22) / 2, (y21 + y22) / 2
-        return float(((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5)
+        X = (x1 - x2) ** 2
+        Y = (y1 - y2) ** 2
+        res = float((X + Y) ** 0.5)
+        return res
     m, i = np.infty, 0
     for n, row in enumerate(rows):
         d = dist(row, row_to_compare)
@@ -166,6 +171,7 @@ def fullfill(output, num_frames):
     # only detections with the most frequent class
     mfc_data = output[output[:, -1] == float(mfc)]
     result = torch.zeros((num_frames, 8))
+    result = result.cuda()
 
     if mfc_data[0][0] != 0:
         mfc_data = fill_first(mfc_data)
@@ -173,55 +179,55 @@ def fullfill(output, num_frames):
     mfc_iter = 0
     res_iter = 0
     while res_iter != num_frames:
-        # check1 = mfc_data[row]
-        # chekc2 = mfc_data[row + 1]
-
-        if mfc_iter == mfc_data.shape[0] - 1:
-            result[res_iter] = mfc_data[mfc_iter]
-            mfc_iter += 1
-            res_iter += 1
-            continue
-
-        # next frame is fullfilled
-        if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0] - 1:
-            result[res_iter] = mfc_data[mfc_iter]
-            mfc_iter += 1
-            res_iter += 1
-            continue
-
-        # missing detection on some frames, fill with missing
-        if mfc_data[mfc_iter][0] + 1 < mfc_data[mfc_iter + 1][0]:
-            subframes = generate_subframes(
-                mfc_data[mfc_iter], mfc_data[mfc_iter + 1])
-            result[res_iter] = mfc_data[mfc_iter]
-            for subframe in subframes:
+        try:
+            if mfc_iter == mfc_data.shape[0] - 1:
+                result[res_iter] = mfc_data[mfc_iter]
+                mfc_iter += 1
                 res_iter += 1
-                result[res_iter] = subframe
-            mfc_iter += 1
-            res_iter += 1
-            continue
+                continue
 
-        # this frame contains multiple detections, have to choose one
-        if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0]:
-            frame = mfc_data[mfc_iter][0]
-            to_cut = mfc_data[mfc_data[:, 0] == frame]
-            closest = the_closest(result[res_iter - 1], to_cut)
-            result[res_iter] = closest
-            mfc_iter += len(to_cut)
-            res_iter += 1
-
-            if mfc_iter >= mfc_data.shape[0] - 1:
-                break
+            # next frame is fullfilled
+            if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0] - 1:
+                result[res_iter] = mfc_data[mfc_iter]
+                mfc_iter += 1
+                res_iter += 1
+                continue
 
             # missing detection on some frames, fill with missing
-            if mfc_data[mfc_iter - 1][0] + 1 < mfc_data[mfc_iter][0]:
+            if mfc_data[mfc_iter][0] + 1 < mfc_data[mfc_iter + 1][0]:
                 subframes = generate_subframes(
-                    result[res_iter - 1], mfc_data[mfc_iter])
-                # result[res_iter] = mfc_data[mfc_iter]
+                    mfc_data[mfc_iter], mfc_data[mfc_iter + 1])
+                result[res_iter] = mfc_data[mfc_iter]
                 for subframe in subframes:
-                    result[res_iter] = subframe
                     res_iter += 1
-            continue
+                    result[res_iter] = subframe
+                mfc_iter += 1
+                res_iter += 1
+                continue
+
+            # this frame contains multiple detections, have to choose one
+            if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0]:
+                frame = mfc_data[mfc_iter][0]
+                to_cut = mfc_data[mfc_data[:, 0] == frame]
+                closest = the_closest(result[res_iter - 1], to_cut)
+                result[res_iter] = closest
+                mfc_iter += len(to_cut)
+                res_iter += 1
+
+                if mfc_iter >= mfc_data.shape[0] - 1:
+                    break
+
+                # missing detection on some frames, fill with missing
+                if mfc_data[mfc_iter - 1][0] + 1 < mfc_data[mfc_iter][0]:
+                    subframes = generate_subframes(
+                        result[res_iter - 1], mfc_data[mfc_iter])
+                    # result[res_iter] = mfc_data[mfc_iter]
+                    for subframe in subframes:
+                        result[res_iter] = subframe
+                        res_iter += 1
+                continue
+        except:
+            return result
     return result
 
 
@@ -495,8 +501,9 @@ def fill_zeros(folder):
 def run(vot_path):
     args = arg_parse()
     res = dict()
-    folders = sorted(os.listdir(vot_path))
-    for folder in folders:
+    folders = sorted(os.listdir(vot_path))[:]
+    folders=["bag", "ball1", "ball2", "birds1","birds2", "bolt1", "basketball"]
+    for folder in folders[:]:
         print("data from {}".format(folder))
         if (folder.endswith(".txt")):
             continue
@@ -518,6 +525,5 @@ def save(res, folder):
 
 
 if __name__ == "__main__":
-    res = run("/home/zabulskyy/Datasets/vot2016")
-    print(res)
+    res = run(arg_parse().vot)
     save(res, "../results/yolo_tracker")
