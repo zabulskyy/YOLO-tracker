@@ -41,7 +41,7 @@ def get_test_input(input_dim, CUDA, cuda_n):
     img_ = Variable(img_)
 
     if CUDA:
-        img_ = img_.cuda(cuda_n)
+        img_ = img_.cuda()
     return img_
 
 
@@ -238,7 +238,7 @@ def predict(args):
     start = 0
 
     os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"]="0"
+    os.environ["CUDA_VISIBLE_DEVICES"]="6"
 
     CUDA = torch.cuda.is_available()
 
@@ -258,7 +258,7 @@ def predict(args):
 
     # If there's a GPU availible, put the model on GPU
     if CUDA:
-        model.cuda(cuda_n)
+        model.cuda()
 
     # Set the model in evaluation mode
     model.eval()
@@ -291,7 +291,7 @@ def predict(args):
     im_dim_list = torch.FloatTensor(im_dim_list).repeat(1, 2)
 
     if CUDA:
-        im_dim_list = im_dim_list.cuda(cuda_n)
+        im_dim_list = im_dim_list.cuda()
 
     leftover = 0
 
@@ -316,7 +316,7 @@ def predict(args):
         # load the image
         start = time.time()
         if CUDA:
-            batch = batch.cuda(cuda_n)
+            batch = batch.cuda()
 
         # Apply offsets to the result predictions
         # Tranform the predictions as described in the YOLO paper
