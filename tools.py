@@ -82,4 +82,4 @@ def grade_vot(vot_folder, res_folder, gt_filename="groundtruth.txt"):
         mean += res[i]
     return mean / len(res.keys()), res
 
-print(grade_vot("/home/zabulskyy/Datasets/vot2016", "results/middle-box"))
+print(grade_vot("/home/zabulskyy/Datasets/vot2016", "results/middle_box"))

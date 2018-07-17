@@ -34,4 +34,4 @@ def save(res, folder):
 
 if __name__ == "__main__":
     res = run("/home/zabulskyy/Datasets/vot2016", 3)
-    save(res, "results/middle-box")
+    save(res, "results/middle_box")

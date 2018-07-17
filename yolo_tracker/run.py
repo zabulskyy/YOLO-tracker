@@ -78,6 +78,8 @@ def arg_parse():
                         default="0", type=str)
 
     return parser.parse_args()
+
+
 def IoU(boxA, boxB):
     xA = max(boxA[0], boxB[0])
     yA = max(boxA[1], boxB[1])
@@ -149,10 +151,24 @@ def the_closest(row_to_compare, rows):
 #             continue
 
 
+def fill_first(tensor):
+    first = tensor[0]
+    for i in range(int(first[0]) - 1, -1, -1):
+        row = first
+        row[0] = i
+        row = row.view((1, -1))
+        tensor = torch.cat((row, tensor))
+    return tensor
+
+
 def fullfill(output, num_frames):
     mfc = most_frequent_class(output)
-    mfc_data = output[output[:, -1] == float(mfc)]  # only detections with the most frequent class
+    # only detections with the most frequent class
+    mfc_data = output[output[:, -1] == float(mfc)]
     result = torch.zeros((num_frames, 8))
+
+    if mfc_data[0][0] != 0:
+        mfc_data = fill_first(mfc_data)
 
     mfc_iter = 0
     res_iter = 0
@@ -166,7 +182,7 @@ def fullfill(output, num_frames):
             res_iter += 1
             continue
 
-        # next frame is fulfilled
+        # next frame is fullfilled
         if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0] - 1:
             result[res_iter] = mfc_data[mfc_iter]
             mfc_iter += 1
@@ -175,7 +191,8 @@ def fullfill(output, num_frames):
 
         # missing detection on some frames, fill with missing
         if mfc_data[mfc_iter][0] + 1 < mfc_data[mfc_iter + 1][0]:
-            subframes = generate_subframes(mfc_data[mfc_iter], mfc_data[mfc_iter + 1])
+            subframes = generate_subframes(
+                mfc_data[mfc_iter], mfc_data[mfc_iter + 1])
             result[res_iter] = mfc_data[mfc_iter]
             for subframe in subframes:
                 res_iter += 1
@@ -198,17 +215,17 @@ def fullfill(output, num_frames):
 
             # missing detection on some frames, fill with missing
             if mfc_data[mfc_iter - 1][0] + 1 < mfc_data[mfc_iter][0]:
-                subframes = generate_subframes(result[res_iter - 1], mfc_data[mfc_iter])
+                subframes = generate_subframes(
+                    result[res_iter - 1], mfc_data[mfc_iter])
                 # result[res_iter] = mfc_data[mfc_iter]
                 for subframe in subframes:
                     result[res_iter] = subframe
                     res_iter += 1
             continue
     return result
-    
 
-def run():
-    args = arg_parse()
+
+def predict(args):
     cuda_n = int(args.cuda)
     silent = args.silent == "all"
     if (silent):
@@ -242,6 +259,7 @@ def run():
 
     # Set the model in evaluation mode
     model.eval()
+    
 
     read_dir = time.time()
     # Detection phase
@@ -257,8 +275,8 @@ def run():
 
     num_frames = len(imlist)
 
-    if not os.path.exists(args.det):
-        os.makedirs(args.det)
+    # if not os.path.exists(args.det):
+    #     os.makedirs(args.det)
 
     load_batch = time.time()
 
@@ -285,7 +303,7 @@ def run():
     i = 0
 
     write = False
-    model(get_test_input(inp_dim, CUDA, cuda_n), CUDA)
+    # model(get_test_input(inp_dim, CUDA, cuda_n), CUDA)
 
     start_det_loop = time.time()
 
@@ -336,6 +354,7 @@ def run():
             output = torch.cat((output, prediction))
 
         for im_num, image in enumerate(imlist[i*batch_size: min((i + 1)*batch_size, len(imlist))]):
+            print(image)
             im_id = i*batch_size + im_num
             objs = [classes[int(x[-1])] for x in output if int(x[0]) == im_id]
             print("{0:20s} predicted in {1:6.3f} seconds".format(
@@ -350,8 +369,7 @@ def run():
     try:
         output
     except NameError:
-        print("No detections were made")
-        exit()
+        return list()
 
     im_dim_list = torch.index_select(im_dim_list, 0, output[:, 0].long())
 
@@ -394,17 +412,16 @@ def run():
                     cv2.FONT_HERSHEY_PLAIN, 1, [225, 255, 255], 1)
         return img
 
-    # # print(output)
-    list(map(lambda x: write(x, im_batches, orig_ims), output))
-    det_names = pd.Series(imlist).apply(lambda x: "{}/yolo/{}".format(args.det, x.split("/")[-1]))
-    list(map(cv2.imwrite, det_names, orig_ims))
-    # print(output)
-    # output = fullfill(output, num_frames)
-    # print(output)
-    list(map(lambda x: write(x, im_batches, orig_ims), output))
-    det_names = pd.Series(imlist).apply(lambda x: "{}/rec/{}".format(args.det, x.split("/")[-1]))
-    list(map(cv2.imwrite, det_names, orig_ims))
+    # list(map(lambda x: write(x, im_batches, orig_ims), output))
+    # det_names = pd.Series(imlist).apply(lambda x: "{}/yolo/{}".format(args.det, x.split("/")[-1]))
+    # list(map(cv2.imwrite, det_names, orig_ims))
 
+    output = fullfill(output, num_frames)
+
+    list(map(lambda x: write(x, im_batches, orig_ims), output))
+    det_names = pd.Series(imlist).apply(
+        lambda x: "{}/rec/{}".format(args.det, x.split("/")[-1]))
+    list(map(cv2.imwrite, det_names, orig_ims))
 
     end = time.time()
 
@@ -444,30 +461,60 @@ def run():
                 wr = csv.writer(f, quoting=csv.QUOTE_ALL)
                 wr.writerow(rep)
 
-    save_to = args.saveto
-    rep = report(output, len(imlist))
-    if save_to != "":
-        print("saving results to", save_to)
-        save_report(rep, save_to, "csv")
+    # save_to = args.saveto
+    # rep = report(output, len(imlist))
+    # if save_to != "":
+    #     print("saving results to", save_to)
+        # save_report(rep, save_to, "csv")
 
     return output, len(imlist), (im_batches, orig_ims)
 
 
+class Args:
+    def __init__(self):
+        self.bs = 1
+        self.confidence = .5
+        self.cfgfile = "cfg/yolov3.cfg"
+        self.nms_thresh = .4
+        self.weightsfile = "yolov3.weights"
+        self.images = None
+        self.reso = 416
+        self.scales = "1,2,3"
+        self.saveto = ""
+        self.silent = None
+        self.cuda = 0
+        self.det = "det"
 
 
+def fill_zeros(folder):
+    return [[0,0,0,0] for i in os.listdir(folder) if i.endswith(".jpg")]
 
-if __name__ == '__main__':
-    o = torch.tensor([
-        [   0.0000,     1.,  1.,  1.,  1.,      0.0,  0.9955,    1.0000],
-        [   1.0000,     2.,  2.,  2.,  2.,      0.1,  0.9173,    1.0000],
-        [   1.0000,     10., 10., 10., 10.,     0.2,  0.8216,    1.0000],
-        [   2.0000,     3.,  3.,  3.,  3.,      0.3,  0.6765,    1.0000],
-        [   2.0000,     30., 30., 30., 30.,     0.4,  0.7964,    1.0000],
-        [   2.0000,     1.,  1.,  1.,  1.,      0.5,  0.7626,    1.0000],
-        [   4.0000,     4.,  4.,  4.,  4.,      0.6,  0.9043,    1.0000],
-        [   5.0000,     4.,  4.,  4.,  4.,      0.7,  0.7252,    1.0000],
-        [   6.0000,     5.,  4.,  4.,  4.,      0.8,  0.9907,    1.0000],
-        [   10.0000,    10.,  4.,  4.,  4.,      0.9,  0.6294,    1.0000],
-        [   15.0000,    4.,  4.,  4.,  4.,      0.91,  0.4758,    1.0000]])
+def run(vot_path):
+    args = Args()
+    res = dict()
+    folders = sorted(os.listdir(vot_path))
+    for folder in folders:
+        print("data from {}".format(folder))
+        if (folder.endswith(".txt")):
+            continue
+        args.images = osp.join(vot_path, folder)
+        bbox = predict(args)
+        if len(bbox) != 0:
+            res[folder] = bbox[0][:, 1:5].tolist()
+        else:
+            res[folder] = fill_zeros(osp.join(vot_path, folder))
+            
+    return res
 
-    output, num_frames, (im_batches, orig_ims) = run()
+
+def save(res, folder):
+    os.chdir(folder)
+    for name in res:
+        print("\n".join([",".join([str(a) for a in x])
+                         for x in res[name]]), file=open(name + ".txt", 'w+'))
+
+
+if __name__ == "__main__":
+    res = run("/home/zabulskyy/Datasets/vot2016")
+    print(res)
+    save(res, "../results/yolo_tracker")

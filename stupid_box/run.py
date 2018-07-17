@@ -31,4 +31,4 @@ def save(res, folder):
 
 if __name__ == "__main__":
     res = run("/home/zabulskyy/Datasets/vot2016")
-    save(res, "results/stupid-box")
+    save(res, "results/stupid_box")
