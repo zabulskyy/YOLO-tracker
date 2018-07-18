@@ -1,20 +1,8 @@
 from detector import predict, arg_parse
-from __future__ import division
-import time
 import torch
-import torch.nn as nn
-from torch.autograd import Variable
 import numpy as np
-import cv2
-import argparse
 import os
 import os.path as osp
-from darknet import Darknet
-from preprocess import prep_image, inp_to_image
-import pandas as pd
-import random
-import pickle as pkl
-import itertools
 
 class Args:
     def __init__(self):
