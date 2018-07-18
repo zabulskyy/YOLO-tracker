@@ -24,18 +24,17 @@ def fill_zeros(folder):
     return [[0, 0, 0, 0] for i in os.listdir(folder) if i.endswith(".jpg")]
 
 
-def run(vot_path):
+def run_vot_full(vot_path, postprocessor):
     args = arg_parse()
     res = dict()
     folders = sorted(os.listdir(vot_path))[:]
-    folders = ["bag", "ball1", "ball2", "birds1",
-               "birds2", "bolt1", "basketball"]
+    folders = ["ball1"]
     for folder in folders[:]:
         print("data from {}".format(folder))
         if (folder.endswith(".txt")):
             continue
         args.images = osp.join(vot_path, folder)
-        bbox = predict(args)
+        bbox = predict(args, postprocessor)
         if len(bbox) != 0:
             res[folder] = bbox[0][:, 1:5].tolist()
         else:
@@ -52,5 +51,5 @@ def save(res, folder):
 
 
 if __name__ == "__main__":
-    res = run(arg_parse().vot)
-    save(res, "../results/yolo-blind")
+    res = run_vot_full(arg_parse().vot)
+    # save(res, "../results/yolo-blind")

@@ -15,7 +15,6 @@ import pandas as pd
 import random
 import pickle as pkl
 import itertools
-from postprocessing import interpolate_blind
 
 
 class test_net(nn.Module):
@@ -100,7 +99,7 @@ def load_results(file="results.txt"):
         return f.readlines()
 
 
-def predict(args):
+def predict(args, postprocessor=None):
     cuda_n = int(args.cuda)
     silent = args.silent == "all"
     if (silent):
@@ -293,7 +292,8 @@ def predict(args):
     # det_names = pd.Series(imlist).apply(lambda x: "{}/yolo/{}".format(args.det, x.split("/")[-1]))
     # list(map(cv2.imwrite, det_names, orig_ims))
 
-    output = interpolate_blind(output, num_frames)
+    if postprocessor is not None:
+        output = postprocessor(output, num_frames, CUDA)
 
     list(map(lambda x: write(x, im_batches, orig_ims), output))
     det_names = pd.Series(imlist).apply(

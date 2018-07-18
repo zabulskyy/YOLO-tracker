@@ -10,8 +10,8 @@ def generate_subframes(row1, row2):
     result = torch.zeros((frame2 - frame1 - 1, 8))
     # result[:, -1] = row1[-1]
     step = (row1 - row2) / diff
-    for i, frame_n in enumerate(range(frame1 + 1, frame2)):
-        result[i] = row1 + (step) * (i + 1)
+    for frame_n in range(frame1 + 1, frame2):
+        result[frame_n] = row1 + (step) * (frame_n + 1)
     return result
 
 
@@ -39,7 +39,7 @@ def the_closest(row_to_compare, rows):
         if d < m:
             m = float(d)
             i = n
-    return rows[i]
+    return rows[i], i
 
 
 # def merge_frames_in_tensor(tensor):
@@ -60,21 +60,18 @@ def fill_first(tensor):
     return tensor
 
 
-def most_frequent_class(results, max_num=1):
-    """
-    results: torch.tensor
-    TODO max_num: notes how mush should we return
-    """
+def most_frequent_class(results):
     counts = np.bincount(results[:, -1])
     return np.argmax(counts)
 
 
-def interpolate_blind(output, num_frames):
+def interpolate_blind(output, num_frames, CUDA):
     mfc = most_frequent_class(output)
     # only detections with the most frequent class
     mfc_data = output[output[:, -1] == float(mfc)]
     result = torch.zeros((num_frames, 8))
-    result = result.cuda()
+    if CUDA:
+        result = result.cuda()
 
     if mfc_data[0][0] != 0:
         mfc_data = fill_first(mfc_data)
@@ -112,7 +109,7 @@ def interpolate_blind(output, num_frames):
             if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0]:
                 frame = mfc_data[mfc_iter][0]
                 to_cut = mfc_data[mfc_data[:, 0] == frame]
-                closest = the_closest(result[res_iter - 1], to_cut)
+                closest, _ = the_closest(result[res_iter - 1], to_cut)
                 result[res_iter] = closest
                 mfc_iter += len(to_cut)
                 res_iter += 1
@@ -134,12 +131,19 @@ def interpolate_blind(output, num_frames):
     return result
 
 
-def interpolate_with_first(first, output, num_frames):
+def the_closest_class(to_compare, results):
+    counts = np.bincount(results[:, -1])
+    return np.argmax(counts)
+
+
+def interpolate_with_first(first, output, num_frames, CUDA):
+    output[0] = first
     mfc = most_frequent_class(output)
     # only detections with the most frequent class
     mfc_data = output[output[:, -1] == float(mfc)]
     result = torch.zeros((num_frames, 8))
-    result = result.cuda()
+    if CUDA:
+        result = result.cuda()
 
     if mfc_data[0][0] != 0:
         mfc_data = fill_first(mfc_data)
@@ -177,7 +181,7 @@ def interpolate_with_first(first, output, num_frames):
             if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0]:
                 frame = mfc_data[mfc_iter][0]
                 to_cut = mfc_data[mfc_data[:, 0] == frame]
-                closest = the_closest(result[res_iter - 1], to_cut)
+                closest, _ = the_closest(result[res_iter - 1], to_cut)
                 result[res_iter] = closest
                 mfc_iter += len(to_cut)
                 res_iter += 1
