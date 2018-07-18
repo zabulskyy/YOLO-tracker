@@ -3,6 +3,8 @@ import torch
 import numpy as np
 import os
 import os.path as osp
+from postprocessing import interpolate_blind, interpolate_with_first
+
 
 class Args:
     def __init__(self):
@@ -51,5 +53,5 @@ def save(res, folder):
 
 
 if __name__ == "__main__":
-    res = run_vot_full(arg_parse().vot)
+    res = run_vot_full(arg_parse().vot, interpolate_blind)
     # save(res, "../results/yolo-blind")
