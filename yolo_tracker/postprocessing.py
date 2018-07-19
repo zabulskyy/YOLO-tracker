@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import os.path as osp
 
 
 def generate_subframes(row1, row2):
@@ -76,154 +77,113 @@ def most_frequent_class(results):
     return np.argmax(counts)
 
 
-def interpolate_blind(output, num_frames, CUDA):
-    mfc = most_frequent_class(output)
-    # only detections with the most frequent class
-    mfc_data = output[output[:, -1] == float(mfc)]
+def interpolate(output, num_frames, CUDA):
     result = torch.zeros((num_frames, 8))
     if CUDA:
         result = result.cuda()
 
-    if mfc_data[0][0] != 0:
-        mfc_data = fill_first(mfc_data)
+    if output[0][0] != 0:
+        output = fill_first(output)
 
-    mfc_iter = 0
+    output_iter = 0
     res_iter = 0
     while res_iter != num_frames:
-        try:
-            if mfc_iter == mfc_data.shape[0] - 1:
-                result[res_iter] = mfc_data[mfc_iter]
-                mfc_iter += 1
-                res_iter += 1
-                continue
-
-            # next frame is interpolated
-            if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0] - 1:
-                result[res_iter] = mfc_data[mfc_iter]
-                mfc_iter += 1
-                res_iter += 1
-                continue
-
-            # missing detection on some frames, fill with missing
-            if mfc_data[mfc_iter][0] + 1 < mfc_data[mfc_iter + 1][0]:
-                subframes = generate_subframes(
-                    mfc_data[mfc_iter], mfc_data[mfc_iter + 1])
-                result[res_iter] = mfc_data[mfc_iter]
-                for subframe in subframes:
-                    res_iter += 1
-                    result[res_iter] = subframe
-                mfc_iter += 1
-                res_iter += 1
-                continue
-
-            # this frame contains multiple detections, have to choose one
-            if mfc_data[mfc_iter][0] == mfc_data[mfc_iter + 1][0]:
-                frame = mfc_data[mfc_iter][0]
-                to_cut = mfc_data[mfc_data[:, 0] == frame]
-                closest, _ = the_closest(result[res_iter - 1], to_cut)
-                result[res_iter] = closest
-                mfc_iter += len(to_cut)
-                res_iter += 1
-
-                if mfc_iter >= mfc_data.shape[0] - 1:
-                    break
-
-                # missing detection on some frames, fill with missing
-                if mfc_data[mfc_iter - 1][0] + 1 < mfc_data[mfc_iter][0]:
-                    subframes = generate_subframes(
-                        result[res_iter - 1], mfc_data[mfc_iter])
-                    # result[res_iter] = mfc_data[mfc_iter]
-                    for subframe in subframes:
-                        result[res_iter] = subframe
-                        res_iter += 1
-                continue
-        except:
-            return result
-    return result
-
-
-def the_closest_class(row_to_compare, rows):
-    first_frame_rows = rows[rows[:, 0] == rows[0][0]]
-    closest, _ = the_closest(row_to_compare, first_frame_rows)
-    return closest[-1]
-
-
-def interpolate_with_first(first, output, num_frames, CUDA):
-    tcc = the_closest_class(first, output)
-    # print(output[tcc].tolist(), file=open("fuck/output_tcc.txt", 'w+'))
-
-    # only detections with the common with gt class class
-    tcc_data = output[output[:, -1] == float(tcc)]
-    # print(tcc_data.tolist(), file=open("fuck/tcc_data.txt", 'w+'))
-
-    result = torch.zeros((num_frames, 8))
-    if CUDA:
-        result = result.cuda()
-
-    if tcc_data[0][0] != 0:
-        tcc_data = fill_first(tcc_data)
-
-    tcc_iter = 0
-    res_iter = 0
-    while res_iter != num_frames:
-        if (tcc_iter > len(tcc_data) - 1):
+        if (output_iter > len(output) - 1):
             # break
             result = fill_last(result, num_frames)
             break
         # try:
-        if tcc_iter == tcc_data.shape[0] - 1:
-            result[res_iter] = tcc_data[tcc_iter]
-            tcc_iter += 1
+        if output_iter == output.shape[0] - 1:
+            result[res_iter] = output[output_iter]
+            output_iter += 1
             res_iter += 1
             continue
 
         # next frame is interpolated
-        if tcc_data[tcc_iter][0] == tcc_data[tcc_iter + 1][0] - 1:
-            result[res_iter] = tcc_data[tcc_iter]
-            tcc_iter += 1
+        if output[output_iter][0] == output[output_iter + 1][0] - 1:
+            result[res_iter] = output[output_iter]
+            output_iter += 1
             res_iter += 1
             continue
 
         # missing detection on some frames, fill with missing
-        if tcc_data[tcc_iter][0] + 1 < tcc_data[tcc_iter + 1][0]:
+        if output[output_iter][0] + 1 < output[output_iter + 1][0]:
             subframes = generate_subframes(
-                tcc_data[tcc_iter], tcc_data[tcc_iter + 1])
-            result[res_iter] = tcc_data[tcc_iter]
+                output[output_iter], output[output_iter + 1])
+            result[res_iter] = output[output_iter]
             for subframe in subframes:
                 res_iter += 1
                 result[res_iter] = subframe
-            tcc_iter += 1
+            output_iter += 1
             res_iter += 1
             continue
 
         # this frame contains multiple detections, have to choose one
-        if tcc_data[tcc_iter][0] == tcc_data[tcc_iter + 1][0]:
-            frame = tcc_data[tcc_iter][0]
-            to_cut = tcc_data[tcc_data[:, 0] == frame]
+        if output[output_iter][0] == output[output_iter + 1][0]:
+            frame = output[output_iter][0]
+            to_cut = output[output[:, 0] == frame]
             closest, _ = the_closest(result[res_iter - 1], to_cut)
             result[res_iter] = closest
-            tcc_iter += len(to_cut)
+            output_iter += len(to_cut)
             res_iter += 1
 
-            if tcc_iter >= tcc_data.shape[0] - 1:
+            if output_iter >= output.shape[0] - 1:
                 break
 
             # missing detection on some frames, fill with missing
-            if tcc_data[tcc_iter - 1][0] + 1 < tcc_data[tcc_iter][0]:
+            if output[output_iter - 1][0] + 1 < output[output_iter][0]:
                 subframes = generate_subframes(
-                    result[res_iter - 1], tcc_data[tcc_iter])
-                # result[res_iter] = tcc_data[tcc_iter]
+                    result[res_iter - 1], output[output_iter])
+                # result[res_iter] = output[output_iter]
                 for subframe in subframes:
                     result[res_iter] = subframe
                     res_iter += 1
             continue
         # except:
-        return result
     return result
+
+
+def interpolate_blind(output, num_frames, CUDA):
+    mfc = most_frequent_class(output)
+    # only detections with the most frequent class
+    output = output[output[:, -1] == float(mfc)]
+    result = interpolate(output, num_frames, CUDA)
+    return result
+
+
+
+def the_closest_class(row_to_compare, rows):
+    first_frame_rows = rows[rows[:, 0] == rows[0][0]]
+    closest, _ = the_closest(row_to_compare, first_frame_rows)
+    return closest
+
+
+def interpolate_with_first(first, output, num_frames, CUDA):
+    if CUDA:
+        first = first.cuda()
+    tcc = the_closest_class(first, output)[-1]
+    # only detections with the common with gt class class
+    output = output[output[:, -1] == float(tcc)]
+    result = interpolate(output, num_frames, CUDA)
+    return result
+
+
+def read_spec_gt(folder, i):
+    with open(osp.join(folder, "groundtruth.txt"), 'r') as file:
+        l = file.read().split("\n")[i].split(",")
+        X, Y = l[::2], l[1::2]
+        l = [min(X), min(Y), max(X),  max(Y)]
+        l = torch.tensor([float(x) for x in l])
+        return l
+
 
 def postprocess(data, folder, pp):
     output = data[0]
     num_frames = data[1]
     CUDA = data[3]
+
     if pp == "interpolate_blind":
         return interpolate_blind(output, num_frames, CUDA)
+    elif pp == "interpolate_with_first":
+        first = read_spec_gt(folder, 0)
+        return interpolate_with_first(first, output, num_frames, CUDA)
