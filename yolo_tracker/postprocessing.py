@@ -220,3 +220,10 @@ def interpolate_with_first(first, output, num_frames, CUDA):
         # except:
         return result
     return result
+
+def postprocess(data, folder, pp):
+    output = data[0]
+    num_frames = data[1]
+    CUDA = data[3]
+    if pp == "interpolate_blind":
+        return interpolate_blind(output, num_frames, CUDA)

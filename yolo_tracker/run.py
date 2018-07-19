@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import os
 import os.path as osp
-from postprocessing import interpolate_blind, interpolate_with_first
+from postprocessing import postprocess
 
 
 class Args:
@@ -26,27 +26,30 @@ def fill_zeros(folder):
     return [[0, 0, 0, 0] for i in os.listdir(folder) if i.endswith(".jpg")]
 
 
-def read_first_gt(folder):
+def read_gt(folder, i):
     with open(osp.join(folder, "groundtruth.txt"), 'r') as file:
-        l = file.read().split("\n")[0].split(",")
+        l = file.read().split("\n")[i].split(",")
         X, Y = l[::2], l[1::2]
         l = [min(X), min(Y), max(X),  max(Y)]
         l = torch.tensor([float(x) for x in l])
         return l
 
 
-def run_vot_full(vot_path, postprocessor):
+def run_vot_full(vot_path, postprocessor=None):
     args = arg_parse()
+    CUDA = torch.cuda.is_available()
     res = dict()
     folders = sorted(os.listdir(vot_path))[:]
-    for folder in folders[:]:
+    folders = ["bag"]
+    for n, folder in enumerate(folders[:]):
         print("data from {}".format(folder))
         if (folder.endswith(".txt")):
             continue
-        first = read_first_gt(osp.join(vot_path, folder))
         args.images = osp.join(vot_path, folder)
-        bbox = predict(args, first, postprocessor)
-        if len(bbox) != 0:
+        bbox = predict(args)
+        if postprocessor is not None:
+            bbox[0] = postprocess(bbox, osp.join(vot_path, folder), postprocessor)
+        if len(bbox[0]) != 0:
             res[folder] = bbox[0][:, 1:5].tolist()
         else:
             res[folder] = fill_zeros(osp.join(vot_path, folder))
@@ -62,5 +65,6 @@ def save(res, folder):
 
 
 if __name__ == "__main__":
-    res = run_vot_full(arg_parse().vot, interpolate_with_first)
+    res = run_vot_full(arg_parse().vot, "interpolate_blind")
+
     save(res, "../results/yolo-first")

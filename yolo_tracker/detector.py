@@ -99,7 +99,7 @@ def load_results(file="results.txt"):
         return f.readlines()
 
 
-def predict(args, first, postprocessor=None):
+def predict(args):
     cuda_n = int(args.cuda)
     silent = args.silent == "all"
     if (silent):
@@ -112,7 +112,7 @@ def predict(args, first, postprocessor=None):
     start = 0
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
     CUDA = torch.cuda.is_available()
 
@@ -148,8 +148,6 @@ def predict(args, first, postprocessor=None):
     except FileNotFoundError:
         print("No file or directory with the name {}".format(images))
         exit()
-
-    num_frames = len(imlist)
 
     # if not os.path.exists(args.det):
     #     os.makedirs(args.det)
@@ -288,12 +286,12 @@ def predict(args, first, postprocessor=None):
                     cv2.FONT_HERSHEY_PLAIN, 1, [225, 255, 255], 1)
         return img
     # print(output.tolist(), file=open("fuck/before.txt", 'w+'))
-    if postprocessor is not None:
-        if CUDA:
-            first = first.cuda()
-        # print(first.tolist(), file=open("fuck/first.txt", 'w+'))
-        output = postprocessor(first, output, num_frames, CUDA)
-        # print(output.tolist(), file=open("fuck/after.txt", 'w+'))
+    # if postprocessor is not None:
+    #     if CUDA:
+    #         first = first.cuda()
+    #     # print(first.tolist(), file=open("fuck/first.txt", 'w+'))
+    #     output = postprocessor(first, output, num_frames, CUDA)
+    #     # print(output.tolist(), file=open("fuck/after.txt", 'w+'))
 
     list(map(lambda x: write(x, im_batches, orig_ims), output))
     det_names = pd.Series(imlist).apply(
@@ -310,7 +308,7 @@ def predict(args, first, postprocessor=None):
                 wr = csv.writer(f, quoting=csv.QUOTE_ALL)
                 wr.writerow(rep)
 
-    save_report(output.tolist(), "report.txt")
+    # save_report(output.tolist(), "report.txt")
     end = time.time()
 
     print()
@@ -345,4 +343,4 @@ def predict(args, first, postprocessor=None):
     #     print("saving results to", save_to)
     # save_report(rep, save_to, "csv")
 
-    return output, len(imlist), (im_batches, orig_ims)
+    return [output, len(imlist), (im_batches, orig_ims), CUDA]
