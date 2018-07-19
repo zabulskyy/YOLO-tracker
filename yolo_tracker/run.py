@@ -29,7 +29,7 @@ def run_vot_full(vot_path, postprocessor=None):
     args = arg_parse()
     res = dict()
     folders = sorted(os.listdir(vot_path))[:]
-    folders = ["bag"]
+    # folders = ["birds2", "bag", "girl", "hand"]
     for n, folder in enumerate(folders[:]):
         print("data from {}".format(folder))
         if (folder.endswith(".txt")):
@@ -54,6 +54,5 @@ def save(res, folder):
 
 
 if __name__ == "__main__":
-    res = run_vot_full(arg_parse().vot, "interpolate_blind")
-
-    # save(res, "../results/yolo-first")
+    res = run_vot_full(arg_parse().vot, "interpolate_with_first")
+    save(res, "../results/yolo-first-smart")

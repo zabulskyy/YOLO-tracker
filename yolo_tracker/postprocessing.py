@@ -147,9 +147,7 @@ def interpolate_blind(output, num_frames, CUDA):
     mfc = most_frequent_class(output)
     # only detections with the most frequent class
     output = output[output[:, -1] == float(mfc)]
-    result = interpolate(output, num_frames, CUDA)
-    return result
-
+    return interpolate(output, num_frames, CUDA)
 
 
 def the_closest_class(row_to_compare, rows):
@@ -158,14 +156,33 @@ def the_closest_class(row_to_compare, rows):
     return closest
 
 
+def replace_first_frame(to_replace, output):
+    output = output[output[:, 0] != 0]
+    return torch.cat((to_replace.view((1, -1)), output))
+
+
 def interpolate_with_first(first, output, num_frames, CUDA):
     if CUDA:
         first = first.cuda()
-    tcc = the_closest_class(first, output)[-1]
-    # only detections with the common with gt class class
-    output = output[output[:, -1] == float(tcc)]
+    tcc = the_closest_class(first, output)
+    # # only detections with the common with gt class class
+    # output = output[output[:, -1] == float(tcc[-1])]
+    # only detections close to the true first frame
+    output = replace_first_frame(tcc, output)
+    return interpolate(output, num_frames, CUDA)
+
+
+def interpolate_with_first_and_tmfc(first, output, num_frames, CUDA):
+    if CUDA:
+        first = first.cuda()
+    tcc = the_closest_class(first, output)  # tensor
+    true_class = tcc[-1]  # number
+
+    # only detections with the true class
+    output = output[output[:, -1] == float(true_class)]
+    output = replace_first_frame(tcc, output)
     result = interpolate(output, num_frames, CUDA)
-    return result
+    return interpolate(output, num_frames, CUDA)
 
 
 def read_spec_gt(folder, i):
