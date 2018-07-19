@@ -54,4 +54,4 @@ def grade_vot(vot_folder, res_folder, gt_filename="groundtruth.txt"):
 
 
 if __name__ == "__main__":
-    print(grade_vot("/home/zabulskyy/Datasets/vot2016", "results/yolo-blind"))
+    print(grade_vot("/home/zabulskyy/Datasets/vot2016", "results/yolo-first"))

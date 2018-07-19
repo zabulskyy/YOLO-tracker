@@ -17,7 +17,7 @@ def plot_single_arr(im_path, pr_arr=None, pr_idx=0, gt_arr=None, gt_idx=0, force
             return
         pr_bb = [float(x) for x in l.split(',')]
 
-        if (force_square):
+        if force_square:
             X, Y = pr_bb[::2], pr_bb[1::2]
             pr_bb = [min(X), min(Y), max(X),  max(Y)]
             plt.plot([pr_bb[0], pr_bb[2], pr_bb[2], pr_bb[0], pr_bb[0], ],
@@ -123,13 +123,13 @@ def save_plot_folder(dir_path, saveto="results", pr_path=None, gt_path=None, for
 
 
 if __name__ == "__main__":
-    # save_plot_single("/home/zabulskyy/Datasets/vot2016/bag/00000100.jpg",
-    #                  pr_path="/home/zabulskyy/Projects/CTU-Research/results/yolo-blind/bag.txt",
-    #                  gt_path="/home/zabulskyy/Datasets/vot2016/bag/groundtruth.txt",
+    # save_plot_single("/home/zabulskyy/Datasets/vot2016/birds1/00000100.jpg",
+    #                  pr_path="/home/zabulskyy/Projects/CTU-Research/results/yolo-blind/birds1.txt",
+    #                  gt_path="/home/zabulskyy/Datasets/vot2016/birds1/groundtruth.txt",
     #                  force_square=True, gt_idx=101, pr_idx=101)
-    save_plot_folder("/home/zabulskyy/Datasets/vot2016/bag", saveto="/home/zabulskyy/Projects/CTU-Research/plots/yolo-blind/bag",
-                     pr_path="/home/zabulskyy/Projects/CTU-Research/results/yolo-blind/bag.txt",
-                     gt_path="/home/zabulskyy/Datasets/vot2016/bag/groundtruth.txt",
+    save_plot_folder("/home/zabulskyy/Datasets/vot2016/birds1", saveto="./plots/yolo-first/birds1",
+                     pr_path="./results/yolo-first/birds1.txt",
+                     gt_path="/home/zabulskyy/Datasets/vot2016/birds1/groundtruth.txt",
                      force_square=True)
     # for plt, _ in arr:
     #     plt.show()

@@ -99,7 +99,7 @@ def load_results(file="results.txt"):
         return f.readlines()
 
 
-def predict(args, postprocessor=None):
+def predict(args, first, postprocessor=None):
     cuda_n = int(args.cuda)
     silent = args.silent == "all"
     if (silent):
@@ -287,19 +287,30 @@ def predict(args, postprocessor=None):
         cv2.putText(img, label, (c1[0], c1[1] + t_size[1] + 4),
                     cv2.FONT_HERSHEY_PLAIN, 1, [225, 255, 255], 1)
         return img
-
-    # list(map(lambda x: write(x, im_batches, orig_ims), output))
-    # det_names = pd.Series(imlist).apply(lambda x: "{}/yolo/{}".format(args.det, x.split("/")[-1]))
-    # list(map(cv2.imwrite, det_names, orig_ims))
-
+    # print(output.tolist(), file=open("fuck/before.txt", 'w+'))
     if postprocessor is not None:
-        output = postprocessor(output, num_frames, CUDA)
+        if CUDA:
+            first = first.cuda()
+        # print(first.tolist(), file=open("fuck/first.txt", 'w+'))
+        output = postprocessor(first, output, num_frames, CUDA)
+        # print(output.tolist(), file=open("fuck/after.txt", 'w+'))
 
     list(map(lambda x: write(x, im_batches, orig_ims), output))
     det_names = pd.Series(imlist).apply(
-        lambda x: "{}/rec/{}".format(args.det, x.split("/")[-1]))
+        lambda x: "{}/{}".format(args.det, x.split("/")[-1]))
     list(map(cv2.imwrite, det_names, orig_ims))
 
+    def save_report(rep, file, format=""):
+        if format == "":
+            with open(file, mode='w') as f:
+                print(rep, file=f)
+        elif format == "csv":
+            import csv
+            with open(file, 'wb') as f:
+                wr = csv.writer(f, quoting=csv.QUOTE_ALL)
+                wr.writerow(rep)
+
+    save_report(output.tolist(), "report.txt")
     end = time.time()
 
     print()
@@ -328,22 +339,10 @@ def predict(args, postprocessor=None):
     #         results.append(pred)
     #     return results
 
-    # def save_report(rep, file, format=""):
-    #     if format == "":
-    #         with open(file, mode='w') as f:
-    #             print(rep, file=f)
-    #     elif format == "csv":
-    #         import csv
-    #         with open(file, 'wb') as f:
-    #             wr = csv.writer(f, quoting=csv.QUOTE_ALL)
-    #             wr.writerow(rep)
-
     # save_to = args.saveto
     # rep = report(output, len(imlist))
     # if save_to != "":
     #     print("saving results to", save_to)
-        # save_report(rep, save_to, "csv")
+    # save_report(rep, save_to, "csv")
 
     return output, len(imlist), (im_batches, orig_ims)
-
-
