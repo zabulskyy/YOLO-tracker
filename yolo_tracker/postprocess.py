@@ -207,7 +207,7 @@ def interpolate_with_first(first, output, num_frames, CUDA):
 def postprocess(data, folder, pp):
     output = data[0]
     num_frames = data[1]
-    CUDA = data[3]
+    CUDA = data[2]
     first = read_spec_gt(folder, 0)
 
     if pp == "mfc":

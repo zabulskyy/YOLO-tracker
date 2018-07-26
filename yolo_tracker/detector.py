@@ -6,7 +6,6 @@ from torch.autograd import Variable
 import numpy as np
 import cv2
 from util import *
-import argparse
 import os
 import os.path as osp
 from darknet import Darknet
@@ -45,40 +44,6 @@ def get_test_input(input_dim, CUDA, cuda_n):
     return img_
 
 
-def arg_parse():
-    """
-    Parse arguements to the detect module
-
-    """
-
-    parser = argparse.ArgumentParser(description='YOLO v3 Detection Module')
-    parser.add_argument("--vot", dest='vot', help="Image / Directory containing vot dataset to perform detection upon",
-                        default="", type=str)
-    parser.add_argument("--images", dest='images', help="Image / Directory containing images to perform detection upon",
-                        default="imgs", type=str)
-    parser.add_argument("--det", dest='det', help="Image / Directory to store detections to",
-                        default="det", type=str)
-    parser.add_argument("--bs", dest="bs", help="Batch size", default=1)
-    parser.add_argument("--confidence", dest="confidence",
-                        help="Object Confidence to filter predictions", default=0.5)
-    parser.add_argument("--nms_thresh", dest="nms_thresh",
-                        help="NMS Threshhold", default=0.4)
-    parser.add_argument("--cfg", dest='cfgfile', help="Config file",
-                        default="cfg/yolov3.cfg", type=str)
-    parser.add_argument("--weights", dest='weightsfile', help="weightsfile",
-                        default="yolov3.weights", type=str)
-    parser.add_argument("--reso", dest='reso', help="Input resolution of the network. Increase to increase accuracy. Decrease to increase speed",
-                        default="416", type=str)
-    parser.add_argument("--scales", dest="scales", help="Scales to use for detection",
-                        default="1,2,3", type=str)
-    parser.add_argument("--save", dest='saveto', help="Save results to the chosen file",
-                        default="", type=str)
-    parser.add_argument("--silent", dest='silent', help="[all] - Run in silent mode",
-                        default="", type=str)
-    parser.add_argument("--cuda", dest='cuda', help="cuda [0-9] select a cuda device",
-                        default="0", type=str)
-
-    return parser.parse_args()
 
 
 def IoU(boxA, boxB):
@@ -110,7 +75,7 @@ def predict(args):
     start = 0
 
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    # os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
 
     CUDA = torch.cuda.is_available()
 
@@ -148,8 +113,15 @@ def predict(args):
 
     result = dict()
 
-    for images in folders:
-        print("processing {}".format(images))
+    for folder in folders[0:1]: #!
+        images = osp.join(vot_path, folder)
+        if (not os.path.isdir(images)):
+            continue
+
+        print("processing {}".format(folder))
+        if (images.endswith(".txt")): #!
+            print("FUCK YOU")
+            continue
         try:
             imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:] if os.path.splitext(  # sorted() is my modification
                 img)[1] == '.png' or os.path.splitext(img)[1] == '.jpeg' or os.path.splitext(img)[1] == '.jpg']
@@ -341,7 +313,7 @@ def predict(args):
 
         torch.cuda.empty_cache()
 
-        result[images] = output
+        result[folder] = output
 
-    return {"result": result, "length":len(imlist), "CUDA": CUDA}
+    return {"results": result, "length":len(imlist), "CUDA": CUDA}
 

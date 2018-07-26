@@ -1,9 +1,10 @@
-from detector import predict, arg_parse
+from detector import predict
 import torch
 import numpy as np
 import os
 import os.path as osp
-from postprocessing import postprocess
+from postprocess import postprocess
+from args import arg_parse
 
 
 class Args:
@@ -20,29 +21,32 @@ class Args:
         self.silent = None
         self.cuda = "3"
         self.det = "det"
+        self.vot = "../../../vot2016/"
+        self.pp = "mfc"
+        self.saveto = "lol.txt"
 
 
 def fill_zeros(folder):
     return [[0, 0, 0, 0] for i in os.listdir(folder) if i.endswith(".jpg")]
 
-def run_vot_full(vot_path, postprocessor=None):
-    args = arg_parse()
-    res = dict()
-    folders = sorted(os.listdir(vot_path))[:]
-    for n, folder in enumerate(folders[:]):
-        print("data from {}".format(folder))
-        if (folder.endswith(".txt")):
-            continue
-        args.images = osp.join(vot_path, folder)
-        bbox = predict(args)
-        if postprocessor is not None:
-            bbox["result"] = postprocess(bbox, osp.join(vot_path, folder), postprocessor)
-        if len(bbox[0]) != 0:
-            res[folder] = bbox["result"][:, 1:5].tolist()
-        else:
-            res[folder] = fill_zeros(osp.join(vot_path, folder))
 
-    return res
+def do_full_postprop(predictions, postprocessor, vot_path):
+
+    RESULTS = predictions["results"]
+    LENGTH = predictions["length"]
+    CUDA = predictions["CUDA"]
+
+    res = dict()
+
+    for im_class in RESULTS:
+        if postprocessor is not None:
+            pp_result = postprocess((RESULTS[im_class], LENGTH, CUDA), osp.join(vot_path, im_class), postprocessor)
+        if len(pp_result) != 0:
+            res[im_class] = pp_result[:, 1:5].tolist()            
+        else:
+            res[im_class] = fill_zeros(osp.join(vot_path, im_class))
+
+        return res
 
 
 def save(res, folder):
@@ -54,6 +58,12 @@ def save(res, folder):
                          for x in res[name]]), file=open(name + ".txt", 'w+'))
 
 
-if __name__ == "__main__":
-    predictions = predict(arg_parse().vot, "first_and_tmfc")
-    save(predictions["result"], "../results/yolo-first-smarter")
+# if __name__ == "__main__":
+args = arg_parse()
+vot_path = args.vot
+saveto = args.saveto
+pp = None if args.pp.lower() == "none" else args.pp
+
+predictions = predict(args)
+pp_predictions = do_full_postprop(predictions, pp, vot_path)
+save(pp_predictions, saveto)
