@@ -36,9 +36,9 @@ def run_vot_full(vot_path, postprocessor=None):
         args.images = osp.join(vot_path, folder)
         bbox = predict(args)
         if postprocessor is not None:
-            bbox[0] = postprocess(bbox, osp.join(vot_path, folder), postprocessor)
+            bbox["result"] = postprocess(bbox, osp.join(vot_path, folder), postprocessor)
         if len(bbox[0]) != 0:
-            res[folder] = bbox[0][:, 1:5].tolist()
+            res[folder] = bbox["result"][:, 1:5].tolist()
         else:
             res[folder] = fill_zeros(osp.join(vot_path, folder))
 
@@ -55,5 +55,5 @@ def save(res, folder):
 
 
 if __name__ == "__main__":
-    res = run_vot_full(arg_parse().vot, "interpolate_with_first_and_tmfc")
-    save(res, "../results/yolo-first-smarter")
+    predictions = predict(arg_parse().vot, "first_and_tmfc")
+    save(predictions["result"], "../results/yolo-first-smarter")

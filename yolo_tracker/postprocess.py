@@ -78,6 +78,15 @@ def most_frequent_class(results):
 
 
 def interpolate(output, num_frames, CUDA):
+    """
+    interpolate gaps
+    choose one detection among multiple, by picking the closest one by the euclidean distance
+    ignore class labels
+    :param output: tensor
+    :param num_frames:
+    :param CUDA: bool - if cuda is available
+    :return: interpolated tensor
+    """
     result = torch.zeros((num_frames, 8))
     if CUDA:
         result = result.cuda()
@@ -92,7 +101,6 @@ def interpolate(output, num_frames, CUDA):
             # break
             result = fill_last(result, num_frames)
             break
-        # try:
         if output_iter == output.shape[0] - 1:
             result[res_iter] = output[output_iter]
             output_iter += 1
@@ -139,15 +147,7 @@ def interpolate(output, num_frames, CUDA):
                     result[res_iter] = subframe
                     res_iter += 1
             continue
-        # except:
     return result
-
-
-def interpolate_blind(output, num_frames, CUDA):
-    mfc = most_frequent_class(output)
-    # only detections with the most frequent class
-    output = output[output[:, -1] == float(mfc)]
-    return interpolate(output, num_frames, CUDA)
 
 
 def the_closest_class(row_to_compare, rows):
@@ -161,18 +161,17 @@ def replace_first_frame(to_replace, output):
     return torch.cat((to_replace.view((1, -1)), output))
 
 
-def interpolate_with_first(first, output, num_frames, CUDA):
-    if CUDA:
-        first = first.cuda()
-    tcc = the_closest_class(first, output)
-    # # only detections with the common with gt class class
-    # output = output[output[:, -1] == float(tcc[-1])]
-    # only detections close to the true first frame
-    output = replace_first_frame(tcc, output)
-    return interpolate(output, num_frames, CUDA)
+def read_spec_gt(folder, i):
+    # reads the specific line in the groundtruth txt file and returns it as a tensorcl
+    with open(osp.join(folder, "groundtruth.txt"), 'r') as file:
+        l = file.read().split("\n")[i].split(",")
+        X, Y = l[::2], l[1::2]
+        l = [min(X), min(Y), max(X), max(Y)]
+        l = torch.tensor([float(x) for x in l])
+        return l
 
 
-def interpolate_with_first_and_tmfc(first, output, num_frames, CUDA):
+def interpolate_with_first_and_mfc(first, output, num_frames, CUDA):
     if CUDA:
         first = first.cuda()
     tcc = the_closest_class(first, output)  # tensor
@@ -182,16 +181,27 @@ def interpolate_with_first_and_tmfc(first, output, num_frames, CUDA):
     output = output[output[:, -1] == float(true_class)]
     output = replace_first_frame(tcc, output)
     result = interpolate(output, num_frames, CUDA)
+    return result
+
+
+def interpolate_mfc(output, num_frames, CUDA):
+    # picks up the most frequent class and removes the different ones
+    # mfc = the Most Frequent Class
+    mfc = most_frequent_class(output)
+
+    # only detections with the most frequent class
+    output = output[output[:, -1] == float(mfc)]
     return interpolate(output, num_frames, CUDA)
 
 
-def read_spec_gt(folder, i):
-    with open(osp.join(folder, "groundtruth.txt"), 'r') as file:
-        l = file.read().split("\n")[i].split(",")
-        X, Y = l[::2], l[1::2]
-        l = [min(X), min(Y), max(X),  max(Y)]
-        l = torch.tensor([float(x) for x in l])
-        return l
+def interpolate_with_first(first, output, num_frames, CUDA):
+    # detects the closest object to first gt box and removes the rest on the first frame
+    if CUDA:
+        first = first.cuda()
+    tcc = the_closest_class(first, output)
+    # only detections close to the true first frame
+    output = replace_first_frame(tcc, output)
+    return interpolate(output, num_frames, CUDA)
 
 
 def postprocess(data, folder, pp):
@@ -200,10 +210,13 @@ def postprocess(data, folder, pp):
     CUDA = data[3]
     first = read_spec_gt(folder, 0)
 
-    if pp == "interpolate_blind":
-        return interpolate_blind(output, num_frames, CUDA)
-    elif pp == "interpolate_with_first":
+    if pp == "mfc":
+        return interpolate_mfc(output, num_frames, CUDA)
+    elif pp == "first":
+        first = read_spec_gt(folder, 0)
         return interpolate_with_first(first, output, num_frames, CUDA)
-    elif pp == "interpolate_with_first_and_tmfc":
-        return interpolate_with_first_and_tmfc(first, output, num_frames, CUDA)
-    
+    elif pp == "first_and_mfc":
+        first = read_spec_gt(folder, 0)
+        return interpolate_with_first_and_mfc(first, output, num_frames, CUDA)
+    else:
+        raise Exception("pp was not cpecified correctly")
