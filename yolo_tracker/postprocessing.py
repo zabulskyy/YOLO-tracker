@@ -198,9 +198,12 @@ def postprocess(data, folder, pp):
     output = data[0]
     num_frames = data[1]
     CUDA = data[3]
+    first = read_spec_gt(folder, 0)
 
     if pp == "interpolate_blind":
         return interpolate_blind(output, num_frames, CUDA)
     elif pp == "interpolate_with_first":
-        first = read_spec_gt(folder, 0)
         return interpolate_with_first(first, output, num_frames, CUDA)
+    elif pp == "interpolate_with_first_and_tmfc":
+        return interpolate_with_first_and_tmfc(first, output, num_frames, CUDA)
+    
