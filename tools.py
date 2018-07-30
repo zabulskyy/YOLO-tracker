@@ -123,18 +123,18 @@ def save_plot_folder(dir_path, saveto="results", pr_path=None, gt_path=None, for
 
 
 if __name__ == "__main__":
-    # save_plot_single("/home/zabulskyy/Datasets/vot2016/birds2/00000100.jpg",
-    #                  pr_path="/home/zabulskyy/Projects/CTU-Research/results/yolo-blind/birds2.txt",
-    #                  gt_path="/home/zabulskyy/Datasets/vot2016/birds2/groundtruth.txt",
+    # save_plot_single("/home/zabulskyy/Datasets/vot2016/leaves/00000100.jpg",
+    #                  pr_path="/home/zabulskyy/Projects/CTU-Research/results/yolo-blind/leaves.txt",
+    #                  gt_path="/home/zabulskyy/Datasets/vot2016/leaves/groundtruth.txt",
     #                  force_square=True, gt_idx=101, pr_idx=101)
-    save_plot_folder("/home/zabulskyy/Datasets/vot2016/birds2", saveto="./plots/yolo-first/birds2",
-                     pr_path="./results/yolo-first/birds2.txt",
-                     gt_path="/home/zabulskyy/Datasets/vot2016/birds2/groundtruth.txt",
+    save_plot_folder("/home/zabulskyy/Datasets/vot2016/leaves", saveto="./plots/yolo-first-smarter/leaves",
+                     pr_path="./results/yolo-first-smarter/leaves.txt",
+                     gt_path="/home/zabulskyy/Datasets/vot2016/leaves/groundtruth.txt",
                      force_square=True)
-    save_plot_folder("/home/zabulskyy/Datasets/vot2016/birds2", saveto="./plots/yolo-first-smart/birds2",
-                    pr_path="./results/yolo-first-smart/birds2.txt",
-                    gt_path="/home/zabulskyy/Datasets/vot2016/birds2/groundtruth.txt",
-                    force_square=True)
+    # save_plot_folder("/home/zabulskyy/Datasets/vot2016/leaves", saveto="./plots/yolo-first-smarter-smart/leaves",
+    #                 pr_path="./results/yolo-first-smarter-smart/leaves.txt",
+    #                 gt_path="/home/zabulskyy/Datasets/vot2016/leaves/groundtruth.txt",
+    #                 force_square=True)
     # for plt, _ in arr:
     #     plt.show()
     #     plt.close('all')
