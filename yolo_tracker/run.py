@@ -58,12 +58,12 @@ def save(res, folder):
                          for x in res[name]]), file=open(name + ".txt", 'w+'))
 
 
-# if __name__ == "__main__":
-args = arg_parse()
-vot_path = args.vot
-saveto = args.saveto
-pp = None if args.pp.lower() == "none" else args.pp
+if __name__ == "__main__":
+    args = arg_parse()
+    vot_path = args.vot
+    saveto = args.saveto
+    pp = None if args.pp.lower() == "none" else args.pp
 
-predictions = predict(args)
-pp_predictions = do_full_postprop(predictions, pp, vot_path)
-save(pp_predictions, saveto)
+    predictions = predict(args)
+    pp_predictions = do_full_postprop(predictions, pp, vot_path)
+    save(pp_predictions, saveto)
