@@ -53,18 +53,18 @@ def the_closest(row_to_compare, rows):
 
 
 def fill_first(tensor):
-    first = tensor[0]
-    for i in range(int(first[0]) - 1, -1, -1):
-        row = first
+    FIRST = tensor[0]
+    for i in range(int(FIRST[0]) - 1, -1, -1):
+        row = FIRST
         row[0] = i
         row = row.view((1, -1))
         tensor = torch.cat((row, tensor))
     return tensor
 
 
-def fill_last(tensor, num_frames):
+def fill_last(tensor, NUM_FRAMES):
     last = tensor[tensor[:, 0] != 0][-1]
-    for i in range(int(last[0]) + 1, num_frames):
+    for i in range(int(last[0]) + 1, NUM_FRAMES):
         row = last
         row[0] = i
         row = row.view((1, -1))
@@ -77,48 +77,48 @@ def most_frequent_class(results):
     return np.argmax(counts)
 
 
-def interpolate(output, num_frames, CUDA):
+def interpolate(OUTPUT, NUM_FRAMES, CUDA):
     """
     interpolate gaps
     choose one detection among multiple, by picking the closest one by the euclidean distance
     ignore class labels
-    :param output: tensor
-    :param num_frames:
+    :param OUTPUT: tensor
+    :param NUM_FRAMES:
     :param CUDA: bool - if cuda is available
     :return: interpolated tensor
     """
-    result = torch.zeros((num_frames, 8))
+    result = torch.zeros((NUM_FRAMES, 8))
     if CUDA:
         result = result.cuda()
 
-    if output[0][0] != 0:
-        output = fill_first(output)
+    if OUTPUT[0][0] != 0:
+        OUTPUT = fill_first(OUTPUT)
 
     output_iter = 0
     res_iter = 0
-    while res_iter != num_frames:
-        if (output_iter > len(output) - 1):
+    while res_iter != NUM_FRAMES:
+        if (output_iter > len(OUTPUT) - 1):
             # break
-            result = fill_last(result, num_frames)
+            result = fill_last(result, NUM_FRAMES)
             break
-        if output_iter == output.shape[0] - 1:
-            result[res_iter] = output[output_iter]
+        if output_iter == OUTPUT.shape[0] - 1:
+            result[res_iter] = OUTPUT[output_iter]
             output_iter += 1
             res_iter += 1
             continue
 
         # next frame is interpolated
-        if output[output_iter][0] == output[output_iter + 1][0] - 1:
-            result[res_iter] = output[output_iter]
+        if OUTPUT[output_iter][0] == OUTPUT[output_iter + 1][0] - 1:
+            result[res_iter] = OUTPUT[output_iter]
             output_iter += 1
             res_iter += 1
             continue
 
         # missing detection on some frames, fill with missing
-        if output[output_iter][0] + 1 < output[output_iter + 1][0]:
+        if OUTPUT[output_iter][0] + 1 < OUTPUT[output_iter + 1][0]:
             subframes = generate_subframes(
-                output[output_iter], output[output_iter + 1])
-            result[res_iter] = output[output_iter]
+                OUTPUT[output_iter], OUTPUT[output_iter + 1])
+            result[res_iter] = OUTPUT[output_iter]
             for subframe in subframes:
                 res_iter += 1
                 result[res_iter] = subframe
@@ -127,22 +127,22 @@ def interpolate(output, num_frames, CUDA):
             continue
 
         # this frame contains multiple detections, have to choose one
-        if output[output_iter][0] == output[output_iter + 1][0]:
-            frame = output[output_iter][0]
-            to_cut = output[output[:, 0] == frame]
+        if OUTPUT[output_iter][0] == OUTPUT[output_iter + 1][0]:
+            frame = OUTPUT[output_iter][0]
+            to_cut = OUTPUT[OUTPUT[:, 0] == frame]
             closest, _ = the_closest(result[res_iter - 1], to_cut)
             result[res_iter] = closest
             output_iter += len(to_cut)
             res_iter += 1
 
-            if output_iter >= output.shape[0] - 1:
+            if output_iter >= OUTPUT.shape[0] - 1:
                 break
 
             # missing detection on some frames, fill with missing
-            if output[output_iter - 1][0] + 1 < output[output_iter][0]:
+            if OUTPUT[output_iter - 1][0] + 1 < OUTPUT[output_iter][0]:
                 subframes = generate_subframes(
-                    result[res_iter - 1], output[output_iter])
-                # result[res_iter] = output[output_iter]
+                    result[res_iter - 1], OUTPUT[output_iter])
+                # result[res_iter] = OUTPUT[output_iter]
                 for subframe in subframes:
                     result[res_iter] = subframe
                     res_iter += 1
@@ -156,9 +156,9 @@ def the_closest_class(row_to_compare, rows):
     return closest
 
 
-def replace_first_frame(to_replace, output):
-    output = output[output[:, 0] != 0]
-    return torch.cat((to_replace.view((1, -1)), output))
+def replace_first_frame(to_replace, OUTPUT):
+    OUTPUT = OUTPUT[OUTPUT[:, 0] != 0]
+    return torch.cat((to_replace.view((1, -1)), OUTPUT))
 
 
 def read_spec_gt(folder, i):
@@ -171,52 +171,53 @@ def read_spec_gt(folder, i):
         return l
 
 
-def interpolate_with_first_and_mfc(first, output, num_frames, CUDA):
+def interpolate_with_first_and_mfc(FIRST, OUTPUT, NUM_FRAMES, CUDA):
     if CUDA:
-        first = first.cuda()
-    tcc = the_closest_class(first, output)  # tensor
+        FIRST = FIRST.cuda()
+    tcc = the_closest_class(FIRST, OUTPUT)  # tensor
     true_class = tcc[-1]  # number
 
     # only detections with the true class
-    output = output[output[:, -1] == float(true_class)]
-    output = replace_first_frame(tcc, output)
-    result = interpolate(output, num_frames, CUDA)
+    OUTPUT = OUTPUT[OUTPUT[:, -1] == float(true_class)]
+    OUTPUT = replace_first_frame(tcc, OUTPUT)
+    result = interpolate(OUTPUT, NUM_FRAMES, CUDA)
     return result
 
 
-def interpolate_mfc(output, num_frames, CUDA):
+def interpolate_mfc(OUTPUT, NUM_FRAMES, CUDA):
     # picks up the most frequent class and removes the different ones
     # mfc = the Most Frequent Class
-    mfc = most_frequent_class(output)
+    mfc = most_frequent_class(OUTPUT)
 
     # only detections with the most frequent class
-    output = output[output[:, -1] == float(mfc)]
-    return interpolate(output, num_frames, CUDA)
+    OUTPUT = OUTPUT[OUTPUT[:, -1] == float(mfc)]
+    return interpolate(OUTPUT, NUM_FRAMES, CUDA)
 
 
-def interpolate_with_first(first, output, num_frames, CUDA):
-    # detects the closest object to first gt box and removes the rest on the first frame
+def interpolate_with_first(FIRST, OUTPUT, NUM_FRAMES, CUDA):
+    # detects the closest object to FIRST gt box and removes the rest on the FIRST frame
     if CUDA:
-        first = first.cuda()
-    tcc = the_closest_class(first, output)
-    # only detections close to the true first frame
-    output = replace_first_frame(tcc, output)
-    return interpolate(output, num_frames, CUDA)
+        FIRST = FIRST.cuda()
+    tcc = the_closest_class(FIRST, OUTPUT)
+    # only detections close to the true FIRST frame
+    OUTPUT = replace_first_frame(tcc, OUTPUT)
+    return interpolate(OUTPUT, NUM_FRAMES, CUDA)
 
 
-def postprocess(data, folder, pp):
-    output = data[0]
-    num_frames = data[1]
+def postprocess(data, folder, postprocessor):
+    # TODO refactor: FIRST framse must be parameter to all interpolators
+    OUTPUT = data[0]
+    NUM_FRAMES = data[1]
     CUDA = data[2]
-    first = read_spec_gt(folder, 0)
+    FIRST = read_spec_gt(folder, 0)
 
-    if pp == "mfc":
-        return interpolate_mfc(output, num_frames, CUDA)
-    elif pp == "first":
-        first = read_spec_gt(folder, 0)
-        return interpolate_with_first(first, output, num_frames, CUDA)
-    elif pp == "first_and_mfc":
-        first = read_spec_gt(folder, 0)
-        return interpolate_with_first_and_mfc(first, output, num_frames, CUDA)
+    if postprocessor == "mfc":
+        return interpolate_mfc(OUTPUT, NUM_FRAMES, CUDA)
+    elif postprocessor == "first":
+        FIRST = read_spec_gt(folder, 0)
+        return interpolate_with_first(FIRST, OUTPUT, NUM_FRAMES, CUDA)
+    elif postprocessor == "first_and_mfc":
+        FIRST = read_spec_gt(folder, 0)
+        return interpolate_with_first_and_mfc(FIRST, OUTPUT, NUM_FRAMES, CUDA)
     else:
-        raise Exception("pp was not cpecified correctly")
+        raise Exception("postprocessor was not cpecified correctly")
