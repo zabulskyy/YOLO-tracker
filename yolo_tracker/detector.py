@@ -112,13 +112,14 @@ def predict(args):
         folders = [args.images]
 
     result = dict()
+    num_frames = dict()
 
-    for folder in folders[0:1]: #!
+    for n, folder in enumerate(folders): #!
         images = osp.join(vot_path, folder)
         if (not os.path.isdir(images)):
             continue
 
-        print("processing {}".format(folder))
+        print("processing {}, {}/{}".format(folder, n+1, len(folders)))
         if (images.endswith(".txt")): #!
             print("FUCK YOU")
             continue
@@ -131,6 +132,8 @@ def predict(args):
         except FileNotFoundError:
             print("No file or directory with the name {}".format(images))
             exit()
+
+        num_frames[folder] = len(imlist)
 
         # if not os.path.exists(args.det):
         #     os.makedirs(args.det)
@@ -211,13 +214,13 @@ def predict(args):
                 output = torch.cat((output, prediction))
 
             for im_num, image in enumerate(imlist[i*batch_size: min((i + 1)*batch_size, len(imlist))]):
-                print(image)
+                # print(image)
                 im_id = i*batch_size + im_num
                 objs = [classes[int(x[-1])] for x in output if int(x[0]) == im_id]
-                print("{0:20s} predicted in {1:6.3f} seconds".format(
-                    image.split("/")[-1], (end - start)/batch_size))
-                print("{0:20s} {1:s}".format("Objects Detected:", " ".join(objs)))
-                print("----------------------------------------------------------")
+                # print("{0:20s} predicted in {1:6.3f} seconds".format(
+                    # image.split("/")[-1], (end - start)/batch_size))
+                # print("{0:20s} {1:s}".format("Objects Detected:", " ".join(objs)))
+                # print("----------------------------------------------------------")
             i += 1
 
             if CUDA:
@@ -294,26 +297,26 @@ def predict(args):
         # save_report(output.tolist(), "report.txt")
         end = time.time()
 
-        print()
-        print("SUMMARY")
-        print("----------------------------------------------------------")
-        print("{:25s}: {}".format("Task", "Time Taken (in seconds)"))
-        print()
-        print("{:25s}: {:2.3f}".format("Reading addresses", load_batch - read_dir))
-        print("{:25s}: {:2.3f}".format(
-            "Loading batch", start_det_loop - load_batch))
-        print("{:25s}: {:2.3f}".format(
-            "Detection (" + str(len(imlist)) + " images)", output_recast - start_det_loop))
-        print("{:25s}: {:2.3f}".format(
-            "Output Processing", class_load - output_recast))
-        print("{:25s}: {:2.3f}".format("Drawing Boxes", end - draw))
-        print("{:25s}: {:2.3f}".format(
-            "Average time_per_img", (end - load_batch)/len(imlist)))
-        print("----------------------------------------------------------")
+        # print()
+        # print("SUMMARY")
+        # print("----------------------------------------------------------")
+        # print("{:25s}: {}".format("Task", "Time Taken (in seconds)"))
+        # print()
+        # print("{:25s}: {:2.3f}".format("Reading addresses", load_batch - read_dir))
+        # print("{:25s}: {:2.3f}".format(
+        #     "Loading batch", start_det_loop - load_batch))
+        # print("{:25s}: {:2.3f}".format(
+        #     "Detection (" + str(len(imlist)) + " images)", output_recast - start_det_loop))
+        # print("{:25s}: {:2.3f}".format(
+        #     "Output Processing", class_load - output_recast))
+        # print("{:25s}: {:2.3f}".format("Drawing Boxes", end - draw))
+        # print("{:25s}: {:2.3f}".format(
+        #     "Average time_per_img", (end - load_batch)/len(imlist)))
+        # print("----------------------------------------------------------")
 
         torch.cuda.empty_cache()
 
         result[folder] = output
 
-    return {"results": result, "length":len(imlist), "CUDA": CUDA}
+    return {"results": result, "num_frames":num_frames, "CUDA": CUDA}
 

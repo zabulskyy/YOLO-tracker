@@ -184,6 +184,19 @@ def interpolate_with_first_and_mfc(FIRST, OUTPUT, NUM_FRAMES, CUDA):
     return result
 
 
+def interpolate_with_first_and_mfc_smart(FIRST, OUTPUT, NUM_FRAMES, CUDA):
+    if CUDA:
+        FIRST = FIRST.cuda()
+    tcc = the_closest_class(FIRST, OUTPUT)  # tensor
+    true_class = tcc[-1]  # number
+    # only detections with the true class
+    if (OUTPUT.shape[0] / NUM_FRAMES > .33):
+        OUTPUT = OUTPUT[OUTPUT[:, -1] == float(true_class)]
+    OUTPUT = replace_first_frame(tcc, OUTPUT)
+    result = interpolate(OUTPUT, NUM_FRAMES, CUDA)
+    return result
+
+
 def interpolate_mfc(OUTPUT, NUM_FRAMES, CUDA):
     # picks up the most frequent class and removes the different ones
     # mfc = the Most Frequent Class
@@ -204,7 +217,7 @@ def interpolate_with_first(FIRST, OUTPUT, NUM_FRAMES, CUDA):
     return interpolate(OUTPUT, NUM_FRAMES, CUDA)
 
 
-def postprocess(data, folder, postprocessor):
+def postprocess(data, folder, postprocessor, first=False):
     # TODO refactor: FIRST framse must be parameter to all interpolators
     OUTPUT = data[0]
     NUM_FRAMES = data[1]
@@ -213,11 +226,17 @@ def postprocess(data, folder, postprocessor):
 
     if postprocessor == "mfc":
         return interpolate_mfc(OUTPUT, NUM_FRAMES, CUDA)
+
     elif postprocessor == "first":
         FIRST = read_spec_gt(folder, 0)
         return interpolate_with_first(FIRST, OUTPUT, NUM_FRAMES, CUDA)
+
     elif postprocessor == "first_and_mfc":
         FIRST = read_spec_gt(folder, 0)
         return interpolate_with_first_and_mfc(FIRST, OUTPUT, NUM_FRAMES, CUDA)
+
+    elif postprocessor == "first_and_mfc_smart":
+        FIRST = read_spec_gt(folder, 0)
+        return interpolate_with_first_and_mfc_smart(FIRST, OUTPUT, NUM_FRAMES, CUDA)
     else:
-        raise Exception("postprocessor was not cpecified correctly")
+        raise Exception("no such postprocessor: {}".format(postprocessor))

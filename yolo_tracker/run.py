@@ -22,7 +22,7 @@ class Args:
         self.cuda = "3"
         self.det = "det"
         self.vot = "../../../vot2016/"
-        self.pp = "mfc"
+        self.pp = "first_and_mfc_smart"
         self.saveto = "lol.txt"
 
 
@@ -33,20 +33,20 @@ def fill_zeros(folder):
 def do_full_postprop(predictions, postprocessor, vot_path):
 
     RESULTS = predictions["results"]
-    LENGTH = predictions["length"]
+    NUM_FRAMES = predictions["num_frames"]
     CUDA = predictions["CUDA"]
 
     res = dict()
 
     for im_class in RESULTS:
         if postprocessor is not None:
-            pp_result = postprocess((RESULTS[im_class], LENGTH, CUDA), osp.join(vot_path, im_class), postprocessor)
+            pp_result = postprocess((RESULTS[im_class], NUM_FRAMES[im_class], CUDA), osp.join(vot_path, im_class), postprocessor)
         if len(pp_result) != 0:
             res[im_class] = pp_result[:, 1:5].tolist()            
         else:
             res[im_class] = fill_zeros(osp.join(vot_path, im_class))
 
-        return res
+    return res
 
 
 def save(res, folder):
@@ -59,7 +59,7 @@ def save(res, folder):
 
 
 if __name__ == "__main__":
-    args = arg_parse()
+    args = Args()
     vot_path = args.vot
     saveto = args.saveto
     pp = None if args.pp.lower() == "none" else args.pp

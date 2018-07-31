@@ -1,0 +1,10 @@
+toolkit.version=4.0
+tracker.identifier=SSAT
+tracker.protocol=file
+tracker.interpreter=matlab
+timestamp=2016-06-19 13:01:40
+platform=GLNXA64
+platform.maxsize=281474976710655.000000
+platform.endian=L
+environment=matlab
+environment.version=8.3.0.532 (R2014a)

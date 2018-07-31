@@ -2,9 +2,14 @@ import os
 import os.path as osp
 
 def iou(cords1, cords2):
+    if len(cords2) < 4:
+        if (cords2[0] == 1):
+            return 1
+        return 1
     if (len(cords1) == 8):
         X1, Y1 = cords1[::2], cords1[1::2]
         cords1 = [min(X1), min(Y1), max(X1),  max(Y1)]
+    if (len(cords2) == 8):
         X2, Y2 = cords2[::2], cords2[1::2]
         cords2 = [min(X2), min(Y2), max(X2),  max(Y2)]
     xA = max(cords1[0], cords2[0])
@@ -37,14 +42,20 @@ def grade(gt_path, pred_path, method="mean_iou"):
     return sum(grades) / len(grades), grades
 
 
-def grade_vot(vot_folder, res_folder, gt_filename="groundtruth.txt"):
+def grade_vot(vot_folder, res_folder, gt_filename="groundtruth.txt", ext=".csv"):
     vot_folders = os.listdir(vot_folder)
     res = dict()
     for i in range(len(vot_folders)):
         if (vot_folders[i].endswith(".txt")):
             continue
         gt_file = osp.join(vot_folder, vot_folders[i], gt_filename)
-        pred_file = osp.join(res_folder, vot_folders[i] + ".txt")
+        pred_file = osp.join(res_folder, vot_folders[i] + ext)
+
+        # print("++++++++++++")
+        # print(gt_file) 
+        # print(pred_file)
+        # print("++++++++++++")
+
         single_grade = grade(gt_file, pred_file)[0]
         res[vot_folders[i]] = single_grade
     mean = 0
@@ -54,4 +65,4 @@ def grade_vot(vot_folder, res_folder, gt_filename="groundtruth.txt"):
 
 
 if __name__ == "__main__":
-    print(grade_vot("/home/zabulskyy/Datasets/vot2016", "results/yolo-first-smarter"))
+    print(grade_vot("/home/zabulskyy/Datasets/vot2016", "../results/yolo-first-supersmart", ext=".txt"))

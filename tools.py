@@ -6,6 +6,22 @@ import tensorflow as tf
 from PIL import Image
 import os
 import os.path as osp
+import argparse
+
+
+def arg_parse():
+    """
+    Parse arguements to the detect module
+    """
+
+    parser = argparse.ArgumentParser(description='YOLO v3 Detection Module')
+    parser.add_argument("--met", dest='method', help="method (yolo-smart, stupid-box, etc)",
+                        default="yolo-first-smart", type=str)
+    parser.add_argument("--cls", dest='cls', help="class (ball1, singer3, etc)",
+                        default="ball1", type=str)
+
+    return parser.parse_args()
+
 
 def plot_single_arr(im_path, pr_arr=None, pr_idx=0, gt_arr=None, gt_idx=0, force_square=False):
     im = Image.open(im_path)
@@ -16,7 +32,8 @@ def plot_single_arr(im_path, pr_arr=None, pr_idx=0, gt_arr=None, gt_idx=0, force
         if l == "":
             return
         pr_bb = [float(x) for x in l.split(',')]
-
+        if len(pr_bb) < 4:
+            return
         if force_square:
             X, Y = pr_bb[::2], pr_bb[1::2]
             pr_bb = [min(X), min(Y), max(X),  max(Y)]
@@ -46,6 +63,7 @@ def plot_single_arr(im_path, pr_arr=None, pr_idx=0, gt_arr=None, gt_idx=0, force
         else:
             plt.plot([gt_bb[0], gt_bb[2], gt_bb[2], gt_bb[0], gt_bb[0], ],
                      [gt_bb[1], gt_bb[1], gt_bb[3], gt_bb[3], gt_bb[1], ], 'b-', lw=2)
+
 
 def plot_single(im_path, pr_path=None, pr_idx=0, gt_path=None, gt_idx=0, force_square=False):
     """
@@ -91,9 +109,11 @@ def plot_single(im_path, pr_path=None, pr_idx=0, gt_path=None, gt_idx=0, force_s
             plt.plot([gt_bb[0], gt_bb[2], gt_bb[2], gt_bb[0], gt_bb[0], ],
                      [gt_bb[1], gt_bb[1], gt_bb[3], gt_bb[3], gt_bb[1], ], 'b-', lw=2)
 
+
 def save_plot_single_arr(im_path, name="plot.jpg", pr_arr=None, pr_idx=0, gt_arr=None, gt_idx=0, force_square=False):
     plot_single_arr(im_path, pr_arr, pr_idx, gt_arr, gt_idx, force_square)
     plt.savefig(name)
+
 
 def save_plot_single(im_path, name="plot.jpg", pr_path=None, pr_idx=0, gt_path=None, gt_idx=0, force_square=False):
     plot_single(im_path, pr_path, pr_idx, gt_path, gt_idx, force_square)
@@ -108,7 +128,6 @@ def save_plot_folder(dir_path, saveto="results", pr_path=None, gt_path=None, for
     if gt_path is not None:
         with open(gt_path, 'r') as f:
             gt_arr = f.read().split("\n")
-    
 
     if pr_path is not None:
         with open(pr_path, 'r') as f:
@@ -118,7 +137,7 @@ def save_plot_folder(dir_path, saveto="results", pr_path=None, gt_path=None, for
         name = osp.join(saveto, file)
         print("saving {}".format(name))
         save_plot_single_arr(osp.join(dir_path, file), name=name, pr_arr=pr_arr,
-                         pr_idx=n, gt_arr=gt_arr, gt_idx=n, force_square=force_square)
+                             pr_idx=n, gt_arr=gt_arr, gt_idx=n, force_square=force_square)
         plt.close()
 
 
@@ -127,12 +146,17 @@ if __name__ == "__main__":
     #                  pr_path="/home/zabulskyy/Projects/CTU-Research/results/yolo-blind/leaves.txt",
     #                  gt_path="/home/zabulskyy/Datasets/vot2016/leaves/groundtruth.txt",
     #                  force_square=True, gt_idx=101, pr_idx=101)
-    save_plot_folder("/home/zabulskyy/Datasets/vot2016/leaves", saveto="./plots/yolo-first-smarter/leaves",
-                     pr_path="./results/yolo-first-smarter/leaves.txt",
-                     gt_path="/home/zabulskyy/Datasets/vot2016/leaves/groundtruth.txt",
+    args = arg_parse()
+    cls = args.cls
+    met = args.method
+
+    save_plot_folder(osp.join("/home/zabulskyy/Datasets/vot2016", cls), saveto=osp.join("./plots", met, cls),
+                     pr_path=osp.join("./results/SSAT/baseline_res", cls) + "_001.txt",
+                     gt_path=osp.join(
+                         "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"),
                      force_square=True)
-    # save_plot_folder("/home/zabulskyy/Datasets/vot2016/leaves", saveto="./plots/yolo-first-smarter-smart/leaves",
-    #                 pr_path="./results/yolo-first-smarter-smart/leaves.txt",
+    # save_plot_folder("/home/zabulskyy/Datasets/vot2016/leaves", saveto="./plots/yolo-first-smart-smart/leaves",
+    #                 pr_path="./results/yolo-first-smart-smart/leaves.txt",
     #                 gt_path="/home/zabulskyy/Datasets/vot2016/leaves/groundtruth.txt",
     #                 force_square=True)
     # for plt, _ in arr:
