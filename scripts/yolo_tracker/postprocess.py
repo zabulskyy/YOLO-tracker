@@ -162,9 +162,10 @@ def replace_first_frame(to_replace, OUTPUT):
 
 
 def replace_i_frame(to_replace, OUTPUT, i):
-    # TODO
-    OUTPUT = OUTPUT[OUTPUT[:, 0] != i]
-    return torch.cat((to_replace.view((1, -1)), OUTPUT))
+    a = OUTPUT[OUTPUT[:, 0] < i]
+    b = to_replace.view((1, -1))
+    c = OUTPUT[OUTPUT[:, 0] > i]
+    return torch.cat((a, b, c))
 
 
 
@@ -230,6 +231,7 @@ def interpolate_god(folder, output, num_frames, CUDA):
     for i in range(num_frames):
         truth = read_spec_gt(folder, i)
         tcc, idx = the_closest(truth, output)
+        
 
 
 
