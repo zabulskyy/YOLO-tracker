@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import os.path as osp
+import os
 
 
 def generate_subframes(row1, row2):
@@ -77,7 +78,7 @@ def most_frequent_class(results):
     return np.argmax(counts)
 
 
-def interpolate(OUTPUT, NUM_FRAMES, CUDA):
+def interpolate(data):
     """
     interpolate gaps
     choose one detection among multiple, by picking the closest one by the euclidean distance
@@ -87,6 +88,10 @@ def interpolate(OUTPUT, NUM_FRAMES, CUDA):
     :param CUDA: bool - if cuda is available
     :return: interpolated tensor
     """
+    OUTPUT = data["output"]
+    NUM_FRAMES = data["num_frames"]
+    CUDA = data["CUDA"]
+
     result = torch.zeros((NUM_FRAMES, 8))
     if CUDA:
         result = result.cuda()
@@ -168,7 +173,6 @@ def replace_i_frame(to_replace, OUTPUT, i):
     return torch.cat((a, b, c))
 
 
-
 def read_spec_gt(folder, i):
     # reads the specific line in the groundtruth txt file and returns it as a tensor
     # 1x4
@@ -180,82 +184,101 @@ def read_spec_gt(folder, i):
         return l
 
 
-def interpolate_with_first_and_mfc(FIRST, OUTPUT, NUM_FRAMES, CUDA):
-    if CUDA:
-        FIRST = FIRST.cuda()
-    tcc = the_closest_class(FIRST, OUTPUT)  # tensor
-    true_class = tcc[-1]  # number
-
-    # only detections with the true class
-    OUTPUT = OUTPUT[OUTPUT[:, -1] == float(true_class)]
-    OUTPUT = replace_first_frame(tcc, OUTPUT)
-    result = interpolate(OUTPUT, NUM_FRAMES, CUDA)
-    return result
-
-
-def interpolate_with_first_and_mfc_smart(FIRST, OUTPUT, NUM_FRAMES, CUDA):
-    if CUDA:
-        FIRST = FIRST.cuda()
-    tcc = the_closest_class(FIRST, OUTPUT)  # tensor
-    true_class = tcc[-1]  # number
-    # only detections with the true class
-    if (OUTPUT.shape[0] / NUM_FRAMES > .33):
-        OUTPUT = OUTPUT[OUTPUT[:, -1] == float(true_class)]
-    OUTPUT = replace_first_frame(tcc, OUTPUT)
-    result = interpolate(OUTPUT, NUM_FRAMES, CUDA)
-    return result
-
-
-def interpolate_mfc(OUTPUT, NUM_FRAMES, CUDA):
+def pp_mfc(data):
     # picks up the most frequent class and removes the different ones
     # mfc = the Most Frequent Class
-    mfc = most_frequent_class(OUTPUT)
+    output = data["output"]
+    mfc = most_frequent_class(output)
 
     # only detections with the most frequent class
-    OUTPUT = OUTPUT[OUTPUT[:, -1] == float(mfc)]
-    return interpolate(OUTPUT, NUM_FRAMES, CUDA)
+    output = output[output[:, -1] == float(mfc)]
+    return output
 
 
-def interpolate_with_first(FIRST, OUTPUT, NUM_FRAMES, CUDA):
+def pp_first(data):
     # detects the closest object to FIRST gt box and removes the rest on the FIRST frame
+    CUDA = data["CUDA"]
+    output = data["output"]
+    first = data["first"]
+
     if CUDA:
-        FIRST = FIRST.cuda()
-    tcc = the_closest_class(FIRST, OUTPUT)
+        first = first.cuda()
+    tcc = the_closest_class(first, output)
     # only detections close to the true FIRST frame
-    OUTPUT = replace_first_frame(tcc, OUTPUT)
-    return interpolate(OUTPUT, NUM_FRAMES, CUDA)
+    output = replace_first_frame(tcc, output)
+    return output
 
 
-def interpolate_god(folder, output, num_frames, CUDA):
-    # TODO
+def pp_god(data):
+
+    num_frames = data["num_frames"]
+    folder = data["folder"]
+    output = data["output"]
+
     for i in range(num_frames):
         truth = read_spec_gt(folder, i)
-        tcc, idx = the_closest(truth, output)
-        
+        to_compare = output[output[:, 0] == i]
+        if to_compare.size()[0] == 0:
+            continue
+        tcc, idx = the_closest(truth, to_compare)
+        output = replace_i_frame(tcc, output, i)
+    return output
 
 
+def fill_zeros(folder):
+    return [[0, 0, 0, 0] for i in os.listdir(folder) if i.endswith(".jpg")]
 
 
-def postprocess(data, folder, postprocessor, first=False):
-    # TODO refactor: FIRST frame must be parameter to all interpolators
-    output = data[0]
-    num_frames = data[1]
-    CUDA = data[2]
-    first = read_spec_gt(folder, 0)
+def postprocess(output, folder, postprocessors):
+    """
+    :param data: (tensor, num_frames, CUDA)
+    :param folder: absulute path to VOT specific class directory
+    :param postprocessors: [mfc, god, first]
+    :return:
+    """
 
-    if postprocessor == "mfc":
-        return interpolate_mfc(output, num_frames, CUDA)
+    data = {
+        "first": read_spec_gt(folder, 0),
+        "output": output[0],
+        "num_frames": output[1],
+        "CUDA": output[2],
+        "folder": folder
+    }
 
-    elif postprocessor == "first":
-        return interpolate_with_first(first, output, num_frames, CUDA)
+    _mfc = "mfc" in postprocessors
+    _first = "first" in postprocessors
+    _god = "god" in postprocessors
 
-    elif postprocessor == "first_and_mfc":
-        return interpolate_with_first_and_mfc(first, output, num_frames, CUDA)
+    if _god:
+        data["output"] = pp_god(data)
 
-    elif postprocessor == "first_and_mfc_smart":
-        return interpolate_with_first_and_mfc_smart(first, output, num_frames, CUDA)
+    if _first:
+        data["output"] = pp_first(data)
 
-    elif postprocessor == "god":
-        return interpolate_god(folder, output, num_frames, CUDA)
-    else:
-        return interpolate(output, num_frames, CUDA)
+    if _mfc:
+        data["output"] = pp_mfc(data)
+
+    return interpolate(data)
+
+
+def do_full_postprop(predictions, postprocessors, vot_path, force_square):
+    RESULTS = predictions["results"]
+    NUM_FRAMES = predictions["num_frames"]
+    CUDA = predictions["CUDA"]
+
+    res = dict()
+    nm_fr = dict()
+
+    for im_class in RESULTS:
+        pp_result = postprocess((RESULTS[im_class], NUM_FRAMES[im_class], CUDA), osp.join(vot_path, im_class),
+                                postprocessors)
+        if force_square:
+            pp_result = pp_result[:, 1:5]
+        if len(pp_result) != 0:
+            res[im_class] = pp_result.tolist()
+            nm_fr[im_class] = NUM_FRAMES[im_class]
+        else:
+            res[im_class] = fill_zeros(osp.join(vot_path, im_class))
+            nm_fr[im_class] = NUM_FRAMES[im_class]
+
+    return res, nm_fr

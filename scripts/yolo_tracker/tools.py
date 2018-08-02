@@ -1,4 +1,11 @@
+import os
 import argparse
+
+
+def get_prj_path(prj_name="YOLO-tracker"):
+    cwd = list(reversed(os.getcwd().split("/")[1:]))
+    i = cwd.index(prj_name)
+    return '/' + '/'.join(list(reversed(cwd[i:])))
 
 def arg_parse():
     """

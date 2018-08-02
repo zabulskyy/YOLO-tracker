@@ -2,8 +2,9 @@ import torch
 import numpy as np
 import os
 import os.path as osp
-from postprocess import postprocess
-from args import arg_parse
+from postprocess import do_full_postprop
+from tools import arg_parse
+from tools import get_prj_path
 
 
 class Args:
@@ -21,35 +22,12 @@ class Args:
         self.det = "det"
         self.vot = "../../../vot2016/"
         self.pp = "first_and_mfc_smart"
-        self.saveto = "lol"
+        self.saveto = "yolo_god"
+        self.fs = True
 
 
-def fill_zeros(folder):
-    return [[0, 0, 0, 0] for i in os.listdir(folder) if i.endswith(".jpg")]
 
-
-def do_full_postprop(predictions, postprocessor, vot_path):
-    RESULTS = predictions["results"]
-    NUM_FRAMES = predictions["num_frames"]
-    CUDA = predictions["CUDA"]
-
-    res = dict()
-    nm_fr = dict()
-
-    for im_class in RESULTS:
-        pp_result = postprocess((RESULTS[im_class], NUM_FRAMES[im_class], CUDA), osp.join(vot_path, im_class),
-                                postprocessor)
-        if len(pp_result) != 0:
-            res[im_class] = pp_result.tolist()
-            nm_fr[im_class] = NUM_FRAMES[im_class]
-        else:
-            res[im_class] = fill_zeros(osp.join(vot_path, im_class))
-            nm_fr[im_class] = NUM_FRAMES[im_class]
-
-    return res, nm_fr
-
-
-def read(folder="../../yolo_vot"):
+def read(folder=osp.join(get_prj_path(), "yolo_vot"), force_square=False):
     tensors = dict()
     lengths = dict()
     file_names = os.listdir(folder)
@@ -63,6 +41,7 @@ def read(folder="../../yolo_vot"):
             lengths[vot_class] = length
 
             tensor = torch.tensor([[float(y) for y in x.split(',')] for x in l])
+
             tensors[vot_class] = tensor
     return {"results": tensors, "num_frames": lengths}
 
@@ -88,8 +67,9 @@ if __name__ == "__main__":
     vot_path = "/home/zabulskyy/Datasets/vot2016/"
     saveto = args.saveto
     pp = None if args.pp.lower() == "none" else args.pp
+    force_square = args.fs
 
-    predictions = read()
+    predictions = read(force_square=force_square)
     predictions["CUDA"] = torch.cuda.is_available()
-    pp_predictions, nm_fr = do_full_postprop(predictions, "mfc", vot_path)
+    pp_predictions, nm_fr = do_full_postprop(predictions, ("god", "first", "mfc"), vot_path, force_square)
     save(pp_predictions, saveto)

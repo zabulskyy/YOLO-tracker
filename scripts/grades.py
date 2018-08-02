@@ -65,4 +65,7 @@ def grade_vot(vot_folder, res_folder, gt_filename="groundtruth.txt", ext=".csv")
 
 
 if __name__ == "__main__":
-    print(grade_vot("/home/zabulskyy/Datasets/vot2016", "/mnt/sshfs/YOLO-tracker/results/theor_middle_box", ext=".csv"))
+    res = grade_vot("/home/zabulskyy/Datasets/vot2016", "/mnt/sshfs/YOLO-tracker/yolo_god", ext=".csv")
+    print("Average: {}".format(res[0]))
+    for key in sorted(res[1].keys()):
+        print("{}: {}".format(key, res[1][key]))

@@ -1,8 +1,4 @@
-    import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import matplotlib.patches as patches
-import numpy as np
-import tensorflow as tf
+import matplotlib.pyplot as plt
 from PIL import Image
 import os
 import os.path as osp
@@ -150,8 +146,8 @@ if __name__ == "__main__":
     cls = args.cls
     met = args.method
 
-    save_plot_folder(osp.join("/home/zabulskyy/Datasets/vot2016", cls), saveto=osp.join("./plots", met, cls),
-                     pr_path=osp.join("../results/theor_middle_box", cls) + ".csv",
+    save_plot_folder(osp.join("/home/zabulskyy/Datasets/vot2016", cls), saveto=osp.join("plots", met, cls),
+                     pr_path=osp.join("results/" + met, cls) + ".csv",
                      gt_path=osp.join(
                          "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"),
                      force_square=True)
