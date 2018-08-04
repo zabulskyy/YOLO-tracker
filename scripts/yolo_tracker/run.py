@@ -21,13 +21,13 @@ class Args:
         self.cuda = "3"
         self.det = "det"
         self.vot = "../../../vot2016/"
-        self.pp = "first_and_mfc_smart"
-        self.saveto = "yolo_god"
+        self.pp = "god"
+        self.saveto = "lololo"
         self.fs = True
 
 
 
-def read(folder=osp.join(get_prj_path(), "yolo_vot"), force_square=False):
+def read(folder=osp.join(get_prj_path(), "yolo_predictions/more"), force_square=False):
     tensors = dict()
     lengths = dict()
     file_names = os.listdir(folder)
@@ -71,5 +71,5 @@ if __name__ == "__main__":
 
     predictions = read(force_square=force_square)
     predictions["CUDA"] = torch.cuda.is_available()
-    pp_predictions, nm_fr = do_full_postprop(predictions, ("god", "first", "mfc"), vot_path, force_square)
+    pp_predictions, nm_fr = do_full_postprop(predictions, ("first"), vot_path, force_square)
     save(pp_predictions, saveto)

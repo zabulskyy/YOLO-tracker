@@ -3,6 +3,12 @@ from PIL import Image
 import os
 import os.path as osp
 import argparse
+import torch
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from PIL import Image
+from random import randrange
+import numpy as np
 
 
 def arg_parse():
@@ -12,7 +18,7 @@ def arg_parse():
 
     parser = argparse.ArgumentParser(description='YOLO v3 Detection Module')
     parser.add_argument("--met", dest='method', help="method (yolo-smart, stupid-box, etc)",
-                        default="yolo-first-smart", type=str)
+                        default="", type=str)
     parser.add_argument("--cls", dest='cls', help="class (ball1, singer3, etc)",
                         default="ball1", type=str)
 
@@ -137,6 +143,63 @@ def save_plot_folder(dir_path, saveto="results", pr_path=None, gt_path=None, for
         plt.close()
 
 
+def csv2tensor(path_to_file, first_len=False):
+    with open(path_to_file, 'r') as f:
+        pr_arr = f.read().split("\n")
+        if first_len:
+            im_len = int(pr_arr.pop(0))
+        else:
+            im_len = -1
+        pr_arr.pop(-1)
+        pr_arr = [[float(y) for y in x.split(",")] for x in pr_arr]
+        return torch.tensor(pr_arr), im_len
+
+
+def plot_single_yolo(im_path, pr_arr, pr_idx, gt_arr, gt_idx, force_square):
+    im = np.array(Image.open(im_path), dtype=np.uint8)
+    # Create figure and axes
+    fig, ax = plt.subplots(1)
+    # Display the image
+    ax.imshow(im)
+    # Create a Rectangle patch
+    for row in pr_arr[pr_arr[:, 0] == pr_idx]:
+        color = (randrange(1, 99) / 100, randrange(1, 99) / 100, randrange(1, 99) / 100)
+        label = int(row[-1])
+        x, y = float(row[1]), float(row[2])
+        h, w = float(row[4]) - y, float(row[3]) - x
+        rect = patches.Rectangle((x, y), w, h, linewidth=2, edgecolor=color, facecolor='none', label=label)
+        # Add the patch to the Axes
+        ax.add_patch(rect)
+        ax.annotate(label, (x, y), color=color, weight='bold', 
+            fontsize=6, ha='left', va='top')
+    # plt.show()
+
+
+def save_plot_single_yolo(im_path, name="plot.jpg", pr_tensor=None, pr_idx=0, gt_tensor=None, gt_idx=0, force_square=False):
+    plot_single_yolo(im_path, pr_tensor, pr_idx,
+                     gt_tensor, gt_idx, force_square)
+    plt.savefig(name)
+
+
+def save_plot_yolo(class_dir, saveto="results", pr_path=None, gt_path=None, force_square=False):
+    if (not os.path.exists(saveto)):
+        os.makedirs(saveto)
+    images = sorted([x for x in os.listdir(class_dir) if x.endswith(".jpg")])
+
+    if gt_path is not None:
+        gt_tensor, gt_len = csv2tensor(gt_path)
+
+    if pr_path is not None:
+        pr_tensor, pr_len = csv2tensor(pr_path)
+
+    for n, file in enumerate(images):
+        name = osp.join(saveto, file)
+        print("saving {}".format(name))
+        save_plot_single_yolo(osp.join(class_dir, file), name=name, gt_tensor=gt_tensor,
+                              pr_idx=n, pr_tensor=pr_tensor, gt_idx=n, force_square=force_square)
+        plt.close()
+
+
 if __name__ == "__main__":
     # save_plot_single("/home/zabulskyy/Datasets/vot2016/leaves/00000100.jpg",
     #                  pr_path="/home/zabulskyy/Projects/CTU-Research/results/yolo-blind/leaves.txt",
@@ -147,7 +210,7 @@ if __name__ == "__main__":
     met = args.method
 
     save_plot_folder(osp.join("/home/zabulskyy/Datasets/vot2016", cls), saveto=osp.join("plots", met, cls),
-                     pr_path=osp.join("results/" + met, cls) + ".csv",
+                     pr_path=osp.join("lololo/" + met, cls) + ".csv",
                      gt_path=osp.join(
                          "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"),
                      force_square=True)

@@ -44,6 +44,28 @@ def the_closest(row_to_compare, rows):
             i = n
     return rows[i], i
 
+def the_most_iou(row_to_compare, rows):
+    def iou(boxA, boxB):
+        boxA = boxA[1:5] if len(boxA) != 4 else boxA
+        boxB = boxB[1:5] if len(boxB) != 4 else boxB
+
+        xA = max(boxA[0], boxB[0])
+        yA = max(boxA[1], boxB[1])
+        xB = min(boxA[2], boxB[2])
+        yB = min(boxA[3], boxB[3])
+        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+        boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+        boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1) 
+        return interArea / float(boxAArea + boxBArea - interArea)
+
+
+    m, i = np.infty, 0
+    for n, row in enumerate(rows):
+        d = iou(row, row_to_compare)
+        if d > m:
+            m = float(d)
+            i = n
+    return rows[i], i
 
 # def merge_frames_in_tensor(tensor):
 #     row = 0
@@ -217,10 +239,10 @@ def pp_god(data):
 
     for i in range(num_frames):
         truth = read_spec_gt(folder, i)
-        to_compare = output[output[:, 0] == i]
-        if to_compare.size()[0] == 0:
+        rows_to_compare = output[output[:, 0] == i]
+        if rows_to_compare.size()[0] == 0:
             continue
-        tcc, idx = the_closest(truth, to_compare)
+        tcc, idx = the_most_iou(truth, rows_to_compare)
         output = replace_i_frame(tcc, output, i)
     return output
 
@@ -270,6 +292,7 @@ def do_full_postprop(predictions, postprocessors, vot_path, force_square):
     nm_fr = dict()
 
     for im_class in RESULTS:
+        print(im_class)
         pp_result = postprocess((RESULTS[im_class], NUM_FRAMES[im_class], CUDA), osp.join(vot_path, im_class),
                                 postprocessors)
         if force_square:
