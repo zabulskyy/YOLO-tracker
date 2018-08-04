@@ -58,12 +58,11 @@ def the_most_iou(row_to_compare, rows):
         boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1) 
         return interArea / float(boxAArea + boxBArea - interArea)
 
-
-    m, i = np.infty, 0
+    M, i = 0, 0
     for n, row in enumerate(rows):
-        d = iou(row, row_to_compare)
-        if d > m:
-            m = float(d)
+        v = iou(row, row_to_compare)
+        if v > M:
+            M = float(v)
             i = n
     return rows[i], i
 
@@ -242,7 +241,7 @@ def pp_god(data):
         rows_to_compare = output[output[:, 0] == i]
         if rows_to_compare.size()[0] == 0:
             continue
-        tcc, idx = the_most_iou(truth, rows_to_compare)
+        tcc, idx = the_most_iou(truth, rows_to_compare) #!
         output = replace_i_frame(tcc, output, i)
     return output
 

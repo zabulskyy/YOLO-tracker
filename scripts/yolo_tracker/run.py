@@ -27,7 +27,7 @@ class Args:
 
 
 
-def read(folder=osp.join(get_prj_path(), "yolo_predictions/more"), force_square=False):
+def read(folder, force_square=False):
     tensors = dict()
     lengths = dict()
     file_names = os.listdir(folder)
@@ -64,12 +64,13 @@ def save(res, folder, ext="csv", nm_fr=None):
 if __name__ == "__main__":
     args = Args()
     # vot_path = args.vot
-    vot_path = "/home/zabulskyy/Datasets/vot2016/"
+    vot_path = "../../vot2016/"
     saveto = args.saveto
     pp = None if args.pp.lower() == "none" else args.pp
     force_square = args.fs
 
-    predictions = read(force_square=force_square)
+    folder=osp.join(get_prj_path(), "yolo_predictions/even_more")
+    predictions = read(folder, force_square=force_square)
     predictions["CUDA"] = torch.cuda.is_available()
-    pp_predictions, nm_fr = do_full_postprop(predictions, ("first"), vot_path, force_square)
+    pp_predictions, nm_fr = do_full_postprop(predictions, ("god"), vot_path, force_square)
     save(pp_predictions, saveto)
