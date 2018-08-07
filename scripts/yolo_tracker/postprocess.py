@@ -44,6 +44,7 @@ def the_closest(row_to_compare, rows):
             i = n
     return rows[i], i
 
+
 def the_most_iou(row_to_compare, rows):
     def iou(boxA, boxB):
         boxA = boxA[1:5] if len(boxA) != 4 else boxA
@@ -55,8 +56,9 @@ def the_most_iou(row_to_compare, rows):
         yB = min(boxA[3], boxB[3])
         interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
         boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-        boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1) 
-        return interArea / float(boxAArea + boxBArea - interArea)
+        boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+        res = interArea / float(boxAArea + boxBArea - interArea)
+        return res
 
     M, i = 0, 0
     for n, row in enumerate(rows):
@@ -65,13 +67,6 @@ def the_most_iou(row_to_compare, rows):
             M = float(v)
             i = n
     return rows[i], i
-
-# def merge_frames_in_tensor(tensor):
-#     row = 0
-#     for row in tensor:
-#         frame = row[0]
-#         if sum(tensor[:, 0] == frame) == 1:
-#             continue
 
 
 def fill_first(tensor):
@@ -156,8 +151,11 @@ def interpolate(data):
         if OUTPUT[output_iter][0] == OUTPUT[output_iter + 1][0]:
             frame = OUTPUT[output_iter][0]
             to_cut = OUTPUT[OUTPUT[:, 0] == frame]
-            closest, _ = the_closest(result[res_iter - 1], to_cut)
+            # closest, _ = the_closest(result[res_iter - 1], to_cut)
+            # result[res_iter] = closest
+            closest, _ = the_most_iou(result[res_iter - 1], to_cut)
             result[res_iter] = closest
+
             output_iter += len(to_cut)
             res_iter += 1
 
@@ -198,7 +196,7 @@ def read_spec_gt(folder, i):
     # reads the specific line in the groundtruth txt file and returns it as a tensor
     # 1x4
     with open(osp.join(folder, "groundtruth.txt"), 'r') as file:
-        l = file.read().split("\n")[i].split(",")
+        l = [float(x) for x in file.read().split("\n")[i].split(",")]
         X, Y = l[::2], l[1::2]
         l = [min(X), min(Y), max(X), max(Y)]
         l = torch.tensor([float(x) for x in l])
@@ -222,8 +220,6 @@ def pp_first(data):
     output = data["output"]
     first = data["first"]
 
-    if CUDA:
-        first = first.cuda()
     tcc = the_closest_class(first, output)
     # only detections close to the true FIRST frame
     output = replace_first_frame(tcc, output)
@@ -241,7 +237,7 @@ def pp_god(data):
         rows_to_compare = output[output[:, 0] == i]
         if rows_to_compare.size()[0] == 0:
             continue
-        tcc, idx = the_most_iou(truth, rows_to_compare) #!
+        tcc, idx = the_most_iou(truth, rows_to_compare)
         output = replace_i_frame(tcc, output, i)
     return output
 
@@ -269,6 +265,10 @@ def postprocess(output, folder, postprocessors):
     _mfc = "mfc" in postprocessors
     _first = "first" in postprocessors
     _god = "god" in postprocessors
+
+    if data["CUDA"]:
+        data["output"] = data["output"].cuda()
+        data["first"] = data["first"].cuda()
 
     if _god:
         data["output"] = pp_god(data)

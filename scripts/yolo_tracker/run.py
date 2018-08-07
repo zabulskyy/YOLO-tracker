@@ -18,11 +18,11 @@ class Args:
         self.reso = "416"
         self.scales = "1,2,3"
         self.silent = None
-        self.cuda = "3"
+        self.cuda = "5"
         self.det = "det"
         self.vot = "../../../vot2016/"
         self.pp = "god"
-        self.saveto = "lololo"
+        self.saveto = "results/yolo-mfc"
         self.fs = True
 
 
@@ -65,12 +65,13 @@ if __name__ == "__main__":
     args = Args()
     # vot_path = args.vot
     vot_path = "../../vot2016/"
+    # vot_path = "/home/zabulskyy/Datasets/vot2016/"
     saveto = args.saveto
     pp = None if args.pp.lower() == "none" else args.pp
     force_square = args.fs
 
-    folder=osp.join(get_prj_path(), "yolo_predictions/even_more")
+    folder=osp.join(get_prj_path(), "yolo_predictions/casual")
     predictions = read(folder, force_square=force_square)
     predictions["CUDA"] = torch.cuda.is_available()
-    pp_predictions, nm_fr = do_full_postprop(predictions, ("god"), vot_path, force_square)
+    pp_predictions, nm_fr = do_full_postprop(predictions, ("mfc"), vot_path, force_square)
     save(pp_predictions, saveto)
