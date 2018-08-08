@@ -220,7 +220,7 @@ def pp_first(data):
     output = data["output"]
     first = data["first"]
 
-    tcc = the_closest_class(first, output)
+    tcc = the_most_iou(first, output)
     # only detections close to the true FIRST frame
     output = replace_first_frame(tcc, output)
     return output

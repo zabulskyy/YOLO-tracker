@@ -166,7 +166,7 @@ def plot_single_yolo(im_path, pr_arr, pr_idx, gt_arr, gt_idx, force_square, gs=F
     # Create a Rectangle patch
     for row in pr_arr[pr_arr[:, 0] == pr_idx]:
         color = (randrange(1, 99) / 100, randrange(1, 99) /
-                 100, randrange(1, 99) / 100) if gs==False else (.7, .7, .7)
+                 100, randrange(1, 99) / 100) if gs == False else (.7, .7, .7)
         label = int(row[-1])
         x, y = float(row[1]), float(row[2])
         h, w = float(row[4]) - y, float(row[3]) - x
@@ -182,7 +182,7 @@ def plot_single_yolo(im_path, pr_arr, pr_idx, gt_arr, gt_idx, force_square, gs=F
 def save_plot_single_yolo(im_path, name="plot.jpg", pr_tensor=None, pr_idx=0, gt_tensor=None, gt_idx=0, force_square=False, gs=False):
     plot_single_yolo(im_path, pr_tensor, pr_idx,
                      gt_tensor, gt_idx, force_square, gs)
-    plt.savefig(name)
+    # plt.savefig(name)
 
 
 def save_plot_yolo(class_dir, saveto="results", pr_path=None, gt_path=None, force_square=False):
@@ -201,6 +201,7 @@ def save_plot_yolo(class_dir, saveto="results", pr_path=None, gt_path=None, forc
         print("saving {}".format(name))
         save_plot_single_yolo(osp.join(class_dir, file), name=name, gt_tensor=gt_tensor,
                               pr_idx=n, pr_tensor=pr_tensor, gt_idx=n, force_square=force_square)
+        plt.show()
         plt.close()
 
 
@@ -223,7 +224,8 @@ def save_plot_everything(imgs_folder=None, yolo_pred_file=None, pred_file=None, 
         print("saving {}".format(name))
         impath = osp.join(imgs_folder, file)
 
-        plot_single_yolo(impath, yolo_pred_tensor, n, gt_tensor, n, force_square, gs=True)
+        plot_single_yolo(impath, yolo_pred_tensor, n,
+                         gt_tensor, n, force_square, gs=True)
         plot_single(impath, pred_file, n, gt_file, n, force_square=True)
         # plt.savefig(name)
         plt.show()
@@ -239,15 +241,18 @@ if __name__ == "__main__":
     cls = args.cls
     met = args.method
 
-    # save_plot_folder(osp.join("/home/zabulskyy/Datasets/vot2016", cls), saveto=osp.join("plots", met, cls),
-    #                  pr_path=osp.join("lololo/" + met, cls) + ".csv",
-    #                  gt_path=osp.join(
-    #                      "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"),
-    #                  force_square=True)
-    save_plot_everything(imgs_folder=osp.join("/home/zabulskyy/Datasets/vot2016", cls), yolo_pred_file=osp.join("yolo_predictions/even_more", cls+".csv"), 
-                        pred_file=osp.join("results/" + met, cls) + ".csv", saveto="lololo", 
-                        force_square=True, gt_file=osp.join(
-                         "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"))
+    save_plot_folder(osp.join("/home/zabulskyy/Datasets/vot2016", cls), saveto=osp.join("plots", met, cls),
+                     pr_path=osp.join("notebooks/" + met, cls) + ".csv",
+                     gt_path=osp.join(
+                         "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"),
+                     force_square=True)
+
+    # save_plot_everything(imgs_folder=osp.join("/home/zabulskyy/Datasets/vot2016", cls), yolo_pred_file=osp.join("yolo_predictions/extended", cls+".csv"),
+    #                     pred_file=osp.join("results/" + met, cls) + ".csv", saveto="lololo",
+    #                     force_square=True, gt_file=osp.join(
+    #                      "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"))
+
+
     # save_plot_folder("/home/zabulskyy/Datasets/vot2016/leaves", saveto="./plots/yolo-first-smart-smart/leaves",
     #                 pr_path="./results/yolo-first-smart-smart/leaves.txt",
     #                 gt_path="/home/zabulskyy/Datasets/vot2016/leaves/groundtruth.txt",
