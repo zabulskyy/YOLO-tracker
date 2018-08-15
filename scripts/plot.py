@@ -114,7 +114,8 @@ def plot_single(im_path, pr_path=None, pr_idx=0, gt_path=None, gt_idx=0, force_s
 
 def save_plot_single_arr(im_path, name="plot.jpg", pr_arr=None, pr_idx=0, gt_arr=None, gt_idx=0, force_square=False):
     plot_single_arr(im_path, pr_arr, pr_idx, gt_arr, gt_idx, force_square)
-    plt.savefig(name)
+    plt.show()
+    # plt.savefig(name)
 
 
 def save_plot_single(im_path, name="plot.jpg", pr_path=None, pr_idx=0, gt_path=None, gt_idx=0, force_square=False):
@@ -227,8 +228,8 @@ def save_plot_everything(imgs_folder=None, yolo_pred_file=None, pred_file=None, 
         plot_single_yolo(impath, yolo_pred_tensor, n,
                          gt_tensor, n, force_square, gs=True)
         plot_single(impath, pred_file, n, gt_file, n, force_square=True)
-        # plt.savefig(name)
-        plt.show()
+        plt.savefig(name)
+        # plt.show()
         plt.close()
 
 
@@ -241,22 +242,19 @@ if __name__ == "__main__":
     cls = args.cls
     met = args.method
 
-    save_plot_folder(osp.join("/home/zabulskyy/Datasets/vot2016", cls), saveto=osp.join("plots", met, cls),
-                     pr_path=osp.join("notebooks/" + met, cls) + ".csv",
-                     gt_path=osp.join(
-                         "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"),
-                     force_square=True)
+    # save_plot_folder(osp.join("/home/zabulskyy/Datasets/vot2016", cls), saveto=osp.join("plots", met, cls),
+    #                  pr_path=osp.join("notebooks/" + met, cls) + ".csv",
+    #                  gt_path=osp.join(
+    #                      "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"),
+    #                  force_square=True)
 
-    # save_plot_everything(imgs_folder=osp.join("/home/zabulskyy/Datasets/vot2016", cls), yolo_pred_file=osp.join("yolo_predictions/extended", cls+".csv"),
-    #                     pred_file=osp.join("results/" + met, cls) + ".csv", saveto="lololo",
-    #                     force_square=True, gt_file=osp.join(
-    #                      "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"))
+    save_plot_everything(imgs_folder=osp.join("/home/zabulskyy/Datasets/vot2016", cls), yolo_pred_file=osp.join("yolo_predictions/casual", cls+".csv"),
+                        pred_file=osp.join("results/" + met, cls) + ".csv", saveto="lololo",
+                        force_square=True, gt_file=osp.join(
+                         "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"))
 
 
     # save_plot_folder("/home/zabulskyy/Datasets/vot2016/leaves", saveto="./plots/yolo-first-smart-smart/leaves",
     #                 pr_path="./results/yolo-first-smart-smart/leaves.txt",
     #                 gt_path="/home/zabulskyy/Datasets/vot2016/leaves/groundtruth.txt",
     #                 force_square=True)
-    # for plt, _ in arr:
-    #     plt.show()
-    #     plt.close('all')

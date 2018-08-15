@@ -66,11 +66,11 @@ def grade_vot(vot_folder, res_folder, gt_filename="groundtruth.txt", ext=".csv")
 
 
 if __name__ == "__main__":
-    res = grade_vot("/home/zabulskyy/Datasets/vot2016", "notebooks/first_results_more_cc", ext=".csv")
+    res = grade_vot("/home/zabulskyy/Datasets/vot2016", "results/yolo-mfc-god", ext=".csv")
     # res = grade_vot("../../vot2016", "notebooks/results", ext=".csv")
-    print("Average: {}".format(res[0]), file=open("results/yolo-first-dp-morecc-first.txt", "a+"))
+    # print("Average: {}".format(res[0]), file=open("results/yolo-first-dp-morecc-first.txt", "a+"))
     for key in sorted(res[1].keys()):
-        print("{}: {}".format(key, res[1][key]), file=open("results/yolo-first-dp-morecc-first.txt", "a+"))
+        # print("{}: {}".format(key, res[1][key]), file=open("results/yolo-first-dp-morecc-first.txt", "a+"))
         print("{}: {}".format(key, res[1][key]))
     print("Average: {}".format(res[0]))
-    
+    print(res)
