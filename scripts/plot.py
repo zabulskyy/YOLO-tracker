@@ -10,17 +10,20 @@ from PIL import Image
 from random import randrange
 import numpy as np
 
+classes = ['person', 'bicycle', 'car', 'motorbike', 'aeroplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'sofa', 'pottedplant', 'bed', 'diningtable', 'toilet', 'tvmonitor', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
+
 
 def arg_parse():
     """
     Parse arguements to the detect module
     """
-
     parser = argparse.ArgumentParser(description='YOLO v3 Detection Module')
-    parser.add_argument("--met", dest='method', help="method (yolo-smart, stupid-box, etc)",
+    parser.add_argument("--dir", dest='dir', help="directory with boxes predictions",
                         default="", type=str)
     parser.add_argument("--cls", dest='cls', help="class (ball1, singer3, etc)",
-                        default="ball1", type=str)
+                        default="", type=str)
+    parser.add_argument("--yolo", dest='yolo', help="yolo boxes dir",
+                        default="yolo_predictions/casual", type=str)
 
     return parser.parse_args()
 
@@ -145,7 +148,6 @@ def save_plot_folder(dir_path, saveto="results", pr_path=None, gt_path=None, for
 
 
 def csv2tensor(path_to_file, first_len=False):
-    print("==========>>>>>>.", path_to_file)
     with open(path_to_file, 'r') as f:
         pr_arr = f.read().split("\n")
         if first_len:
@@ -154,8 +156,8 @@ def csv2tensor(path_to_file, first_len=False):
             im_len = -1
         pr_arr.pop(-1)
         pr_arr = [[float(y) for y in x.split(",")] for x in pr_arr]
-        print(pr_arr[:4])
         return torch.tensor(pr_arr), im_len
+
 
 
 def plot_single_yolo(im_path, pr_arr, pr_idx, gt_arr, gt_idx, force_square, gs=False):
@@ -165,10 +167,13 @@ def plot_single_yolo(im_path, pr_arr, pr_idx, gt_arr, gt_idx, force_square, gs=F
     # Display the image
     ax.imshow(im)
     # Create a Rectangle patch
+    print(pr_arr[pr_arr[:, 0] == pr_idx][:, :5])
+
     for row in pr_arr[pr_arr[:, 0] == pr_idx]:
         color = (randrange(1, 99) / 100, randrange(1, 99) /
                  100, randrange(1, 99) / 100) if gs == False else (.7, .7, .7)
-        label = int(row[-1])
+        class_index = torch.argmax(row[6:])
+        label = classes[class_index]
         x, y = float(row[1]), float(row[2])
         h, w = float(row[4]) - y, float(row[3]) - x
         rect = patches.Rectangle(
@@ -224,13 +229,12 @@ def save_plot_everything(imgs_folder=None, yolo_pred_file=None, pred_file=None, 
         name = osp.join(saveto, file)
         print("saving {}".format(name))
         impath = osp.join(imgs_folder, file)
-
         plot_single_yolo(impath, yolo_pred_tensor, n,
                          gt_tensor, n, force_square, gs=True)
         plot_single(impath, pred_file, n, gt_file, n, force_square=True)
         plt.savefig(name)
-        # plt.show()
-        plt.close()
+        plt.show()
+        # plt.close()
 
 
 if __name__ == "__main__":
@@ -238,9 +242,9 @@ if __name__ == "__main__":
     #                  pr_path="/home/zabulskyy/Projects/CTU-Research/results/yolo-blind/leaves.txt",
     #                  gt_path="/home/zabulskyy/Datasets/vot2016/leaves/groundtruth.txt",
     #                  force_square=True, gt_idx=101, pr_idx=101)
-    args = arg_parse()
-    cls = args.cls
-    met = args.method
+    cls = "birds2"
+    met = "../YOLO-tracker/results/first_results_more_cc_first_init"
+    yolo_pred_path = "/home/zabulskyy/Projects/CTU-Research/yolo_predictions/extended/"
 
     # save_plot_folder(osp.join("/home/zabulskyy/Datasets/vot2016", cls), saveto=osp.join("plots", met, cls),
     #                  pr_path=osp.join("notebooks/" + met, cls) + ".csv",
@@ -248,10 +252,10 @@ if __name__ == "__main__":
     #                      "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"),
     #                  force_square=True)
 
-    save_plot_everything(imgs_folder=osp.join("/home/zabulskyy/Datasets/vot2016", cls), yolo_pred_file=osp.join("yolo_predictions/casual", cls+".csv"),
-                        pred_file=osp.join("results/" + met, cls) + ".csv", saveto="lololo",
+    save_plot_everything(imgs_folder=osp.join("/home/zabulskyy/Datasets/vot2016", cls), yolo_pred_file=osp.join(yolo_pred_path, cls+".csv"),
+                        pred_file=osp.join("./" + met, cls) + ".csv", saveto="lololo",
                         force_square=True, gt_file=osp.join(
-                         "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"))
+                        "/home/zabulskyy/Datasets/vot2016", cls, "groundtruth.txt"))
 
 
     # save_plot_folder("/home/zabulskyy/Datasets/vot2016/leaves", saveto="./plots/yolo-first-smart-smart/leaves",
