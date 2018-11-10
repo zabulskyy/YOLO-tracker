@@ -25,7 +25,7 @@ def convert2cpu(matrix):
         return matrix
 
 
-def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA=True, x_emb=None):
+def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA=True, embed=None):
     batch_size = prediction.size(0)
     stride = inp_dim // prediction.size(2)
     grid_size = inp_dim // stride
@@ -38,15 +38,12 @@ def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA=True, x_em
     prediction = prediction.transpose(1, 2).contiguous()
     prediction = prediction.view(batch_size, grid_size * grid_size * num_anchors, bbox_attrs)
 
-    if x_emb is not None:
-        print(x_emb.size())
-        x_emb = x_emb.view(batch_size, 256, grid_size * grid_size)
-        x_emb = x_emb.transpose(1, 2).contiguous()
-        x_emb = x_emb.view(batch_size, grid_size * grid_size, 256)
-        x_emb = x_emb.repeat(1,3).view(1, -1, 256)  # duplicate by 3
-
-        print(x_emb.size())
-        print(prediction.size())
+    if embed is not None:
+        print(embed.shape)
+        embed = embed.view(batch_size, -1, grid_size * grid_size)
+        embed = embed.transpose(1, 2).contiguous()
+        embed = embed.view(batch_size, grid_size * grid_size, -1)
+        embed = embed.repeat(1, 3, 1).view(1, -1, embed.shape[2])  # duplicate by 3
 
     # Sigmoid the  centre_X, centre_Y. and object confidencce
     prediction[:, :, 0] = torch.sigmoid(prediction[:, :, 0])
@@ -82,6 +79,9 @@ def predict_transform(prediction, inp_dim, anchors, num_classes, CUDA=True, x_em
 
     prediction[:, :, :4] *= stride
 
+    if embed is not None:
+        return prediction, embed
+
     return prediction
 
 
@@ -107,7 +107,7 @@ def unique(tensor):
     return tensor_res
 
 
-def write_results(prediction, confidence, num_classes, nms=True, nms_conf=0.4):
+def write_results(prediction, confidence, num_classes, nms=True, nms_conf=0.4, embed=None):
     conf_mask = (prediction[:, :, 4] > confidence).float().unsqueeze(2)
     prediction = prediction * conf_mask
 

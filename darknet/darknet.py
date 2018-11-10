@@ -289,24 +289,24 @@ class Darknet(nn.Module):
 
     def forward(self, x, CUDA):
         detections = []
+        emb_detections = []
         modules = self.blocks[1:]
         outputs = {}  # We cache the outputs for the route layer
 
         write = 0
 
-        x_emb = None
+        emb = None
 
         for i in range(len(modules)):
 
             module_type = (modules[i]["type"])
             if module_type == "convolutional" or module_type == "upsample" or module_type == "maxpool":
 
-                if i == 105:
-                    x_emb = x
+                if i in {105, 93, 81}:
+                    emb = x
 
                 x = self.module_list[i](x)
                 outputs[i] = x
-
 
             elif module_type == "route":
                 layers = modules[i]["layers"]
@@ -344,25 +344,31 @@ class Darknet(nn.Module):
 
                 # Output the result
                 x = x.data
-                x = predict_transform(x, inp_dim, anchors, num_classes, CUDA, x_emb)
-                # x = predict_transform(x, inp_dim, anchors, num_classes, CUDA)
+
+                if emb is not None:
+                    x, emb = predict_transform(x, inp_dim, anchors, num_classes, CUDA, emb)
+                else:
+                    x = predict_transform(x, inp_dim, anchors, num_classes, CUDA)
 
                 if type(x) == int:
                     continue
 
                 if not write:
                     detections = x
+                    emb_detections.append(emb)
                     write = 1
 
                 else:
                     detections = torch.cat((detections, x), 1)
+                    emb_detections.append(emb)
 
                 outputs[i] = outputs[i - 1]
 
-        try:
-            return detections
-        except:
-            return 0
+        print("from darknet, emb:", emb.shape)
+        print("from darknet, emb_detections:", [x.shape for x in emb_detections])
+        print("from darknet, x:", x.shape)
+        print("from darknet, detections:", detections.shape)
+        return detections, emb_detections
 
     def load_weights(self, weightfile):
 
