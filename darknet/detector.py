@@ -35,15 +35,13 @@ def get_test_input(input_dim, CUDA, cuda_n):
     img = cv2.imread("dog-cycle-car.png")
     img = cv2.resize(img, (input_dim, input_dim))
     img_ = img[:, :, ::-1].transpose((2, 0, 1))
-    img_ = img_[np.newaxis, :, :, :]/255.0
+    img_ = img_[np.newaxis, :, :, :] / 255.0
     img_ = torch.from_numpy(img_).float()
     img_ = Variable(img_)
 
     if CUDA:
         img_ = img_.cuda()
     return img_
-
-
 
 
 def IoU(boxA, boxB):
@@ -114,18 +112,20 @@ def predict(args):
     result = dict()
     num_frames = dict()
 
-    for n, folder in enumerate(folders): #!
+    for n, folder in enumerate(folders):  # !
         images = osp.join(vot_path, folder)
         if (not os.path.isdir(images)):
             continue
 
-        print("processing {}, {}/{}".format(folder, n+1, len(folders)))
-        if (images.endswith(".txt")): #!
+        print("processing {}, {}/{}".format(folder, n + 1, len(folders)))
+        if (images.endswith(".txt")):  # !
             print("FUCK YOU")
             continue
         try:
-            imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:] if os.path.splitext(  # sorted() is my modification
-                img)[1] == '.png' or os.path.splitext(img)[1] == '.jpeg' or os.path.splitext(img)[1] == '.jpg']
+            imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:] if
+                      os.path.splitext(  # sorted() is my modification
+                          img)[1] == '.png' or os.path.splitext(img)[1] == '.jpeg' or os.path.splitext(img)[
+                          1] == '.jpg']
         except NotADirectoryError:
             imlist = []
             imlist.append(osp.join(osp.realpath('.'), images))
@@ -157,8 +157,8 @@ def predict(args):
 
         if batch_size != 1:
             num_batches = len(imlist) // batch_size + leftover
-            im_batches = [torch.cat((im_batches[i*batch_size: min((i + 1)*batch_size,
-                                                                  len(im_batches))])) for i in range(num_batches)]
+            im_batches = [torch.cat((im_batches[i * batch_size: min((i + 1) * batch_size,
+                                                                    len(im_batches))])) for i in range(num_batches)]
 
         i = 0
 
@@ -183,7 +183,7 @@ def predict(args):
             with torch.no_grad():
                 prediction = model(Variable(batch), CUDA)
 
-    #        prediction = prediction[:,scale_indices]
+            #        prediction = prediction[:,scale_indices]
 
             # get the boxes with object confidence > threshold
             # Convert the cordinates to absolute coordinates
@@ -202,10 +202,9 @@ def predict(args):
 
             end = time.time()
 
-
             # print(end - start)
 
-            prediction[:, 0] += i*batch_size
+            prediction[:, 0] += i * batch_size
 
             if not write:
                 output = prediction
@@ -213,12 +212,12 @@ def predict(args):
             else:
                 output = torch.cat((output, prediction))
 
-            for im_num, image in enumerate(imlist[i*batch_size: min((i + 1)*batch_size, len(imlist))]):
+            for im_num, image in enumerate(imlist[i * batch_size: min((i + 1) * batch_size, len(imlist))]):
                 # print(image)
-                im_id = i*batch_size + im_num
+                im_id = i * batch_size + im_num
                 objs = [classes[int(x[-1])] for x in output if int(x[0]) == im_id]
                 # print("{0:20s} predicted in {1:6.3f} seconds".format(
-                    # image.split("/")[-1], (end - start)/batch_size))
+                # image.split("/")[-1], (end - start)/batch_size))
                 # print("{0:20s} {1:s}".format("Objects Detected:", " ".join(objs)))
                 # print("----------------------------------------------------------")
             i += 1
@@ -233,12 +232,12 @@ def predict(args):
 
         im_dim_list = torch.index_select(im_dim_list, 0, output[:, 0].long())
 
-        scaling_factor = torch.min(inp_dim/im_dim_list, 1)[0].view(-1, 1)
+        scaling_factor = torch.min(inp_dim / im_dim_list, 1)[0].view(-1, 1)
 
         output[:, [1, 3]] -= (inp_dim - scaling_factor *
-                              im_dim_list[:, 0].view(-1, 1))/2
+                              im_dim_list[:, 0].view(-1, 1)) / 2
         output[:, [2, 4]] -= (inp_dim - scaling_factor *
-                              im_dim_list[:, 1].view(-1, 1))/2
+                              im_dim_list[:, 1].view(-1, 1)) / 2
 
         output[:, 1:5] /= scaling_factor
 
@@ -271,6 +270,7 @@ def predict(args):
             cv2.putText(img, label, (c1[0], c1[1] + t_size[1] + 4),
                         cv2.FONT_HERSHEY_PLAIN, 1, [225, 255, 255], 1)
             return img
+
         # print(output.tolist(), file=open("fuck/before.txt", 'w+'))
         # if postprocessor is not None:
         #     if CUDA:
@@ -318,5 +318,4 @@ def predict(args):
 
         result[folder] = output
 
-    return {"results": result, "num_frames":num_frames, "CUDA": CUDA}
-
+    return {"results": result, "num_frames": num_frames, "CUDA": CUDA}
