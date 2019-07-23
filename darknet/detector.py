@@ -119,7 +119,6 @@ def predict(args):
 
         print("processing {}, {}/{}".format(folder, n + 1, len(folders)))
         if (images.endswith(".txt")):  # !
-            print("FUCK YOU")
             continue
         try:
             imlist = [osp.join(osp.realpath('.'), images, img) for img in sorted(os.listdir(images))[:] if
